@@ -271,15 +271,16 @@
       </div>
       <div class="user-table-wrap">
         <table class="user-table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Job Title</th>
-              <th>Department</th>
-              <th>Status</th>
-            </tr>
-          </thead>
+         <thead>
+  <tr>
+    <th>Name</th>
+    <th>Email</th>
+    <th>Job Title</th>
+    <th>Department</th>
+    <th>Status</th>
+    <th>Actions</th>
+  </tr>
+</thead>
           <tbody id="activeUsersTable"></tbody>
         </table>
       </div>
@@ -445,6 +446,11 @@ function renderActiveUsers(){
       <td>${user.job_title || "---"}</td>
       <td>${user.department || "---"}</td>
       <td><span style="color: var(--accent-glow);">Active</span></td>
+       <td>
+      <button class="btn-small btn-reject" onclick="deactivateUser(${user.id})" style="font-size:0.75rem; padding:6px 12px;">
+        <i class="fa-solid fa-ban"></i> Deactivate
+      </button>
+    </td>
     </tr>
   `).join("");
 }
@@ -494,7 +500,32 @@ async function rejectRequest(id){
     showAlert("danger", `Failed: ${e.message}`);
   }
 }
+async function deactivateUser(userId){
+  if(!confirm("Are you sure you want to deactivate this user?")){
+    return;
+  }
 
+  try {
+    const res = await fetch(`${API_URL}/admin/users/${userId}/deactivate`, {
+      method: "POST",
+      headers: authHeaders()
+    });
+
+    const data = await res.json();
+    console.log("deactivate:", data);
+
+    if(!data.success){
+      showAlert("danger", data.message || "Failed to deactivate user");
+      return;
+    }
+
+    showAlert("success", "✓ User deactivated successfully.");
+    await refresh();
+  } catch(e) {
+    console.error("Deactivate error:", e);
+    showAlert("danger", `Failed: ${e.message}`);
+  }
+}
 async function refresh(){
   await Promise.all([
     loadStats(),
