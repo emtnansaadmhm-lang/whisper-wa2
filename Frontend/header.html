@@ -1,0 +1,425 @@
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+<style>
+  .ww-topbar{
+    background: rgba(20, 40, 30, 0.65);
+    border: 1px solid rgba(95, 191, 122, 0.3);
+    backdrop-filter: blur(12px);
+    border-radius: 16px;
+    padding: 12px 18px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.22);
+    position: relative;
+    z-index: 9999;
+  }
+
+  .ww-left{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    min-width: 240px;
+  }
+
+  .ww-brand{
+    display:flex;
+    align-items:center;
+    gap:12px;
+  }
+
+  .ww-logo{
+    height:42px;
+    width:auto;
+    filter: drop-shadow(0 0 6px rgba(63,155,95,0.5));
+  }
+
+  .ww-title{
+    display:flex;
+    flex-direction:column;
+    line-height:1.1;
+  }
+
+  .ww-title b{
+    font-size:1.15rem;
+    color:#fff;
+  }
+
+  .ww-title span{
+    color:#c2dec9;
+    font-size:0.85rem;
+    margin-top:4px;
+  }
+
+  .ww-actions{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+
+  .ww-icon-btn{
+    border:none;
+    background: rgba(0,0,0,0.18);
+    color:#c2dec9;
+    width:38px;
+    height:38px;
+    border-radius:12px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    transition:0.2s;
+  }
+
+  .ww-icon-btn:hover{
+    background: rgba(95,191,122,0.14);
+    color:#8fd9a8;
+    transform: translateY(-1px);
+  }
+
+  .ww-lang-btn{
+    background: rgba(95,191,122,0.10);
+    border: 1px solid rgba(95, 191, 122, 0.3);
+    color:#8fd9a8;
+    padding: 8px 14px;
+    border-radius: 999px;
+    cursor:pointer;
+    font-weight:900;
+    transition:0.25s;
+    user-select:none;
+  }
+
+  .ww-lang-btn:hover{
+    background: rgba(95,191,122,0.18);
+    transform: translateY(-1px);
+  }
+
+  .ww-dropdown{
+    position: relative;
+  }
+
+  .ww-avatar-btn{
+    border:none;
+    background: rgba(0,0,0,0.18);
+    width:38px;
+    height:38px;
+    border-radius:12px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#c2dec9;
+    transition:0.2s;
+    position: relative;
+  }
+
+  .ww-avatar-btn:hover{
+    background: rgba(95,191,122,0.14);
+    color:#8fd9a8;
+    transform: translateY(-1px);
+  }
+
+  .ww-avatar-badge{
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: linear-gradient(135deg, #ff6b6b, #ff4757);
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 900;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    border: 2px solid var(--bg-dark, #0e1a12);
+    box-shadow: 0 2px 8px rgba(255,75,87,0.4);
+  }
+
+  .ww-avatar-badge.show{
+    display: flex;
+  }
+
+  .ww-menu{
+    position:absolute;
+    top: calc(100% + 10px);
+    inset-inline-end: 0;
+    inset-inline-start: auto;
+    min-width: 220px;
+    background: rgba(20, 40, 30, 0.92);
+    border: 1px solid rgba(95, 191, 122, 0.3);
+    backdrop-filter: blur(12px);
+    border-radius: 14px;
+    padding: 8px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+    display:none;
+    z-index: 20000;
+  }
+
+  .ww-menu.open{
+    display:block;
+  }
+
+  .ww-menu-item{
+    width:100%;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding: 10px;
+    border-radius: 12px;
+    color:#fff;
+    text-decoration:none;
+    background: transparent;
+    border:none;
+    cursor:pointer;
+    font-family: 'Tajawal', sans-serif;
+    font-size: 0.92rem;
+    text-align: start;
+    transition: 0.2s;
+  }
+
+  .ww-menu-item i{
+    color:#8fd9a8;
+    width: 20px;
+  }
+
+  .ww-menu-item:hover{
+    background: rgba(95,191,122,0.14);
+  }
+
+  .ww-menu-item.admin-only{
+    display: none;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    margin-top: 4px;
+    padding-top: 14px;
+  }
+
+  .ww-menu-item.admin-only.show{
+    display: flex;
+  }
+
+  .ww-menu-item.admin-only i{
+    color: #ffc857;
+  }
+
+  .ww-menu-item.admin-only:hover{
+    background: rgba(255,200,87,0.14);
+  }
+
+  .menu-badge{
+    margin-left: auto;
+    background: rgba(255,107,107,0.2);
+    color: #ffd1d1;
+    border: 1px solid rgba(255,107,107,0.3);
+    font-size: 0.75rem;
+    font-weight: 900;
+    padding: 2px 8px;
+    border-radius: 999px;
+    min-width: 20px;
+    text-align: center;
+  }
+</style>
+
+<header class="ww-topbar" id="wwTopbar">
+  <div class="ww-left">
+    <button class="ww-icon-btn" id="btnBack" type="button" title="Back">
+      <i class="fa-solid fa-arrow-left"></i>
+    </button>
+
+    <div class="ww-brand">
+      <img src="logo.png" class="ww-logo" alt="Whisper-WA Logo" />
+      <div class="ww-title">
+        <b>Whisper-WA</b>
+        <span id="top-subtitle">Digital Forensics Platform</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="ww-actions">
+    <button class="ww-lang-btn" id="btnLang" type="button">
+      <span id="langText">AR</span>
+    </button>
+
+    <div class="ww-dropdown" id="accountDropdown">
+      <button class="ww-avatar-btn" id="btnAccount" type="button" aria-haspopup="menu" aria-expanded="false">
+        <i class="fa-solid fa-user"></i>
+        <span class="ww-avatar-badge" id="avatarBadge">0</span>
+      </button>
+
+      <div class="ww-menu" id="accountMenu" role="menu" aria-hidden="true">
+        <a class="ww-menu-item admin-only" id="menuAdmin" href="admin.html" role="menuitem">
+          <i class="fa-solid fa-shield-halved"></i>
+          <span>Admin Dashboard</span>
+          <span class="menu-badge" id="menuAdminBadge">0</span>
+        </a>
+
+        <a class="ww-menu-item" href="settings.html" role="menuitem">
+          <i class="fa-solid fa-gear"></i>
+          <span>Settings</span>
+        </a>
+
+        <button class="ww-menu-item" id="menuLogout" type="button" role="menuitem">
+          <i class="fa-solid fa-right-from-bracket"></i>
+          <span>Logout</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<script>
+(function(){
+  const API_URL = "http://localhost:5000/api";
+
+  const btnAccount = document.getElementById("btnAccount");
+  const menu = document.getElementById("accountMenu");
+  const logoutBtn = document.getElementById("menuLogout");
+  const menuAdmin = document.getElementById("menuAdmin");
+  const menuAdminBadge = document.getElementById("menuAdminBadge");
+  const avatarBadge = document.getElementById("avatarBadge");
+  const btnLang = document.getElementById("btnLang");
+  const langText = document.getElementById("langText");
+  const topSubtitle = document.getElementById("top-subtitle");
+
+  if (!btnAccount || !menu) return;
+
+  function getToken(){
+    return localStorage.getItem("authToken");
+  }
+
+  function getUserRole(){
+    return localStorage.getItem("userRole");
+  }
+
+  function authHeaders(){
+    return {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${getToken()}`
+    };
+  }
+
+  function applyLanguage(){
+    let lang = localStorage.getItem("lang") || "en";
+
+    function render(){
+      if(lang === "ar"){
+        document.documentElement.lang = "ar";
+        document.documentElement.dir = "rtl";
+        if(langText) langText.textContent = "EN";
+        if(topSubtitle) topSubtitle.textContent = "منصة التحليل الجنائي الرقمي";
+      } else {
+        document.documentElement.lang = "en";
+        document.documentElement.dir = "ltr";
+        if(langText) langText.textContent = "AR";
+        if(topSubtitle) topSubtitle.textContent = "Digital Forensics Platform";
+      }
+      localStorage.setItem("lang", lang);
+    }
+
+    if(btnLang){
+      btnLang.onclick = () => {
+        lang = (lang === "ar") ? "en" : "ar";
+        render();
+      };
+    }
+
+    render();
+  }
+
+  function checkAdminRole(){
+    const isAdmin = (getUserRole() === "admin");
+
+    if(isAdmin && menuAdmin){
+      menuAdmin.classList.add("show");
+      updatePendingCount();
+    } else if(menuAdmin){
+      menuAdmin.classList.remove("show");
+      if (avatarBadge) avatarBadge.classList.remove("show");
+      if (menuAdminBadge) menuAdminBadge.textContent = "0";
+    }
+  }
+
+  async function updatePendingCount(){
+    const isAdmin = (getUserRole() === "admin");
+    const token = getToken();
+
+    if(!isAdmin || !token) return;
+
+    try{
+      const res = await fetch(`${API_URL}/admin/requests?status=pending`, {
+        method: "GET",
+        headers: authHeaders()
+      });
+
+      const data = await res.json();
+
+      if(!data.success || !Array.isArray(data.requests)){
+        if(menuAdminBadge) menuAdminBadge.textContent = "0";
+        if(avatarBadge) avatarBadge.classList.remove("show");
+        return;
+      }
+
+      const pendingCount = data.requests.length;
+
+      if(pendingCount > 0){
+        if(menuAdminBadge) menuAdminBadge.textContent = pendingCount;
+        if(avatarBadge){
+          avatarBadge.textContent = pendingCount;
+          avatarBadge.classList.add("show");
+        }
+      } else {
+        if(menuAdminBadge) menuAdminBadge.textContent = "0";
+        if(avatarBadge) avatarBadge.classList.remove("show");
+      }
+    } catch(e){
+      console.error("Error updating pending count:", e);
+      if(menuAdminBadge) menuAdminBadge.textContent = "0";
+      if(avatarBadge) avatarBadge.classList.remove("show");
+    }
+  }
+
+  function openMenu(){
+    menu.classList.add("open");
+    btnAccount.setAttribute("aria-expanded", "true");
+    menu.setAttribute("aria-hidden", "false");
+  }
+
+  function closeMenu(){
+    menu.classList.remove("open");
+    btnAccount.setAttribute("aria-expanded", "false");
+    menu.setAttribute("aria-hidden", "true");
+  }
+
+  btnAccount.addEventListener("click", (e)=>{
+    e.stopPropagation();
+    menu.classList.contains("open") ? closeMenu() : openMenu();
+  });
+
+  menu.addEventListener("click", (e)=> e.stopPropagation());
+  document.addEventListener("click", closeMenu);
+
+  if (logoutBtn){
+    logoutBtn.addEventListener("click", ()=> {
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("currentUser");
+      localStorage.removeItem("userRole");
+      localStorage.removeItem("lastRequestId");
+      localStorage.removeItem("case_id");
+      localStorage.removeItem("device_serial");
+      localStorage.removeItem("decrypted_db_path");
+      window.location.href = "index.html";
+    });
+  }
+
+  applyLanguage();
+  checkAdminRole();
+
+  setInterval(() => {
+    if(getUserRole() === "admin"){
+      updatePendingCount();
+    }
+  }, 5000);
+})();
+</script>

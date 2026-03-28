@@ -1,0 +1,1437 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Whisper-WA | بناء التقرير</title>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --primary-dark: #1f5f3b;
+      --primary-mid: #3f9b5f;
+      --primary-light: #5fbf7a;
+      --accent-glow: #8fd9a8;
+      --bg-dark: #0e1a12;
+      --glass-bg: rgba(20, 40, 30, 0.65);
+      --glass-border: rgba(95, 191, 122, 0.3);
+      --text-white: #ffffff;
+      --text-muted: #c2dec9;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Tajawal', sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-white);
+      height: 100vh;
+      overflow: hidden;
+      background-image:
+        linear-gradient(rgba(31, 95, 59, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(31, 95, 59, 0.1) 1px, transparent 1px);
+      background-size: 40px 40px;
+      direction: rtl;
+      position: relative;
+    }
+
+    .main-container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      padding: 25px;
+      gap: 20px;
+      position: relative;
+      z-index: 10 !important;
+    }
+
+    .workspace-grid {
+      display: flex;
+      flex: 1;
+      gap: 20px;
+      overflow: hidden;
+      position: relative;
+      z-index: 10;
+    }
+
+    .report-sidebar {
+      width: auto;
+      flex: 1.25;
+      min-width: 420px;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(15px);
+      border-radius: 20px;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    }
+
+    .sidebar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      padding-bottom: 10px;
+    }
+
+    .sidebar-header h3 { font-size: 1.1rem; color: var(--primary-light); }
+
+    .sidebar-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .btn-secondary {
+      background: rgba(95, 191, 122, 0.12);
+      border: 1px solid rgba(95, 191, 122, 0.35);
+      color: var(--accent-glow);
+      padding: 10px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-family: 'Tajawal';
+      font-size: 0.9rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      transition: 0.25s;
+      white-space: nowrap;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(63, 155, 95, 0.35);
+      border-color: rgba(95, 191, 122, 0.6);
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      background: linear-gradient(45deg, var(--primary-dark), var(--primary-mid));
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: bold;
+      font-family: 'Tajawal';
+      font-size: 0.95rem;
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      align-items: center;
+      transition: 0.3s;
+      box-shadow: 0 4px 15px rgba(31, 95, 59, 0.3);
+    }
+
+    .btn-primary:hover { filter: brightness(1.2); transform: scale(1.02); }
+    .mb-10 { margin-bottom: 20px; }
+
+    .report-table-wrap {
+      flex: 1;
+      overflow: auto;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(0,0,0,0.18);
+    }
+
+    .report-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 620px;
+    }
+
+    .report-table thead th {
+      position: sticky;
+      top: 0;
+      background: rgba(20, 40, 30, 0.95);
+      color: var(--primary-light);
+      font-size: 0.85rem;
+      text-align: right;
+      padding: 12px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      z-index: 2;
+    }
+
+    .report-table tbody td {
+      padding: 12px 10px;
+      font-size: 0.85rem;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      color: var(--text-white);
+      vertical-align: top;
+    }
+
+    .report-table tbody tr:hover {
+      background: rgba(95, 191, 122, 0.08);
+    }
+
+    .cell-msg { white-space: normal; line-height: 1.4; }
+
+    .badge-type {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .badge-sent { background: rgba(63,155,95,0.22); color: #d8ffe4; }
+    .badge-recv { background: rgba(44,62,80,0.35); color: #d7e6ff; }
+
+    .chat-interface {
+      flex: 1;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(15px);
+      border-radius: 20px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    }
+
+    .search-area {
+      padding: 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      background: rgba(0,0,0,0.1);
+    }
+
+    .case-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      background: rgba(95, 191, 122, 0.12);
+      border: 1px solid rgba(95, 191, 122, 0.25);
+      color: var(--text-white);
+    }
+
+    .case-banner-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .case-banner i {
+      color: var(--accent-glow);
+    }
+
+    .case-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+
+    .case-subtitle {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .search-input-wrapper {
+      position: relative;
+      margin-bottom: 15px;
+    }
+
+    .search-input-wrapper input {
+      width: 80%;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--glass-border);
+      padding: 10px 40px 10px 15px;
+      border-radius: 10px;
+      color: white;
+      outline: none;
+      font-family: 'Tajawal';
+      font-size: 0.95rem;
+    }
+
+    .search-input-wrapper > i {
+      position: absolute;
+      right: 15px;
+      top: 16px;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    .search-suggestions {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      width: 80%;
+      max-height: 280px;
+      overflow-y: auto;
+      background: rgba(20, 40, 30, 0.97);
+      border: 1px solid rgba(95, 191, 122, 0.25);
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.28);
+      display: none;
+      z-index: 100;
+    }
+
+    .search-suggestions.show {
+      display: block;
+    }
+
+    .suggestion-item {
+      padding: 10px 14px;
+      cursor: pointer;
+      color: var(--text-white);
+      font-size: 0.9rem;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      transition: 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .suggestion-item:last-child {
+      border-bottom: none;
+    }
+
+    .suggestion-item:hover {
+      background: rgba(95, 191, 122, 0.14);
+    }
+
+    .suggestion-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .suggestion-left i {
+      position: static;
+      color: var(--accent-glow);
+      font-size: 0.8rem;
+    }
+
+    .suggestion-text {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      direction: ltr;
+      text-align: left;
+    }
+
+    .suggestion-type {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      white-space: nowrap;
+    }
+
+    .tags-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .tag {
+      background: rgba(95, 191, 122, 0.15);
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      color: var(--accent-glow);
+      border: 1px solid rgba(95, 191, 122, 0.3);
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .tag:hover {
+      background: var(--primary-mid);
+      color: white;
+    }
+
+    .tag.active-tag {
+      background: var(--primary-mid);
+      color: white;
+    }
+
+    .chat-split-view {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .chat-list {
+      width: 260px;
+      border-left: 1px solid rgba(255,255,255,0.1);
+      overflow-y: auto;
+      background: rgba(0,0,0,0.1);
+    }
+
+    .chat-item {
+      padding: 14px 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .chat-item:hover, .chat-item.active {
+      background: rgba(95, 191, 122, 0.1);
+      border-right: 4px solid var(--primary-light);
+    }
+
+    .chat-item input[type="checkbox"]{
+      margin-top: 4px;
+      accent-color: var(--primary-light);
+      cursor: pointer;
+    }
+
+    .chat-info h4 {
+      font-size: 0.98rem;
+      margin-bottom: 6px;
+      color: white;
+      line-height: 1.2;
+      word-break: break-word;
+    }
+
+    .chat-info p {
+      font-size: 0.83rem;
+      color: var(--text-muted);
+      word-break: break-word;
+    }
+
+    .time {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-right: auto;
+      white-space: nowrap;
+    }
+
+    .message-view {
+      flex: 1;
+      padding: 25px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
+      background-blend-mode: overlay;
+      background-color: rgba(14, 26, 18, 0.9);
+      scroll-behavior: smooth;
+    }
+
+    .msg {
+      padding: 10px 15px;
+      border-radius: 12px;
+      max-width: 75%;
+      font-size: 0.95rem;
+      position: relative;
+      line-height: 1.5;
+      cursor: pointer;
+      user-select: none;
+      transition: 0.2s;
+      border: 1px solid transparent;
+      word-break: break-word;
+    }
+
+    .msg.received {
+      background: #202c33;
+      align-self: flex-end;
+      border-bottom-right-radius: 2px;
+      color: white;
+    }
+
+    .msg.sent {
+      background: var(--primary-dark);
+      align-self: flex-start;
+      border-bottom-left-radius: 2px;
+      border: 1px solid var(--primary-mid);
+      color: white;
+    }
+
+    .msg.selected {
+      border-color: var(--accent-glow);
+      box-shadow: 0 0 0 2px rgba(143, 217, 168, 0.25);
+      transform: translateY(-1px);
+    }
+
+    .msg.focused-hit {
+      box-shadow: 0 0 0 2px rgba(167, 243, 176, 0.45);
+      border-color: #a7f3b0;
+    }
+
+    .msg-time {
+      display: block;
+      font-size: 0.7rem;
+      margin-top: 5px;
+      opacity: 0.7;
+      text-align: left;
+    }
+
+    .msg mark.search-hit {
+      background: #a7f3b0;
+      color: #062016;
+      padding: 0 4px;
+      border-radius: 4px;
+      font-weight: 700;
+    }
+
+    .empty-state {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 180px;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      text-align: center;
+      line-height: 1.8;
+    }
+
+    .animated-bg-logo {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: -5 !important;
+      width: 600px;
+      pointer-events: none;
+      opacity: 0.2;
+      animation: cyberGlowPulse 8s ease-in-out infinite alternate;
+    }
+
+    .animated-bg-logo img {
+      width: 100%;
+      height: auto;
+      filter: drop-shadow(0 0 30px var(--primary-mid));
+    }
+
+    @keyframes cyberGlowPulse {
+      0% { opacity: 0.15; transform: translate(-50%, -50%) scale(0.95); }
+      100% { opacity: 0.35; transform: translate(-50%, -50%) scale(1.05); }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="animated-bg-logo">
+    <img src="logo.png" alt="Background Logo">
+  </div>
+
+  <div class="main-container">
+    <div id="header-placeholder"></div>
+
+    <div class="workspace-grid">
+      <aside class="glass-panel report-sidebar">
+        <div class="sidebar-header">
+          <h3 id="txt-draft-title"><i class="fa-solid fa-file-contract"></i> مسودة التقرير</h3>
+
+          <div class="sidebar-actions">
+            <button class="btn-secondary" id="btn-export" type="button">
+              <i class="fa-solid fa-file-arrow-down"></i> <span id="txt-export">تنزيل التقرير</span>
+            </button>
+
+            <a class="btn-secondary" id="btn-analysis" href="analysis.html">
+              <i class="fa-solid fa-magnifying-glass-chart"></i> <span id="txt-analysis">تحليل</span>
+            </a>
+
+            <button class="btn-secondary" id="btn-view" type="button">
+              <i class="fa-solid fa-eye"></i> <span id="txt-view">عرض التقرير</span>
+            </button>
+          </div>
+        </div>
+
+        <button class="btn-primary full-width mb-10" id="txt-add-btn" type="button">
+          <i class="fa-solid fa-plus-circle"></i> إضافة للتقرير الحالي
+        </button>
+
+        <div class="report-table-wrap">
+          <table class="report-table" id="reportTable">
+            <thead>
+              <tr>
+                <th id="th-msg">الرسالة</th>
+                <th id="th-type">النوع</th>
+                <th id="th-num">الرقم</th>
+                <th id="th-time">التاريخ والوقت</th>
+              </tr>
+            </thead>
+            <tbody id="reportTbody"></tbody>
+          </table>
+        </div>
+      </aside>
+
+      <section class="glass-panel chat-interface">
+        <div class="search-area">
+          <div class="case-banner" id="caseBanner">
+            <div class="case-banner-left">
+              <i class="fa-solid fa-folder-open"></i>
+              <div>
+                <div class="case-title" id="caseTitle">الكيس الحالية: -</div>
+                <div class="case-subtitle" id="caseSubtitle">بانتظار تحميل المحادثات</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="search-input-wrapper">
+            <i class="fa-solid fa-search"></i>
+            <input type="text" id="inp-search" placeholder="بحث في المحادثات (كلمة، رقم، رابط)..." autocomplete="off">
+            <div class="search-suggestions" id="searchSuggestions"></div>
+          </div>
+
+          <div class="tags-row">
+            <span class="tag active-tag" data-tag="all">#All</span>
+            <span class="tag" data-tag="url">#URL</span>
+            <span class="tag" data-tag="images">#Images</span>
+            <span class="tag" data-tag="location">#Location</span>
+          </div>
+        </div>
+
+        <div class="chat-split-view">
+          <div class="chat-list"></div>
+          <div class="message-view" id="messageView"></div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = "http://127.0.0.1:5000";
+
+    let casesData = [];
+    let chatsData = [];
+    const urlParams = new URLSearchParams(window.location.search);
+
+    let selectedCaseId =
+      urlParams.get("case_id") ||
+      localStorage.getItem("CURRENT_CASE_ID") ||
+      localStorage.getItem("case_id") ||
+      null;
+
+    if (selectedCaseId) {
+      localStorage.setItem("case_id", selectedCaseId);
+      localStorage.setItem("CURRENT_CASE_ID", selectedCaseId);
+    }
+
+    let selectedChatId = null;
+    let currentSearchQuery = "";
+    const selectedMessageIds = new Set();
+
+    let suggestionPool = [];
+    let activeTagFilter = "all";
+
+    const tbody = document.getElementById("reportTbody");
+    const addBtn = document.getElementById("txt-add-btn");
+    const messageView = document.getElementById("messageView");
+    const chatListContainer = document.querySelector(".chat-list");
+    const searchInput = document.getElementById("inp-search");
+    const exportBtn = document.getElementById("btn-export");
+    const viewBtn = document.getElementById("btn-view");
+    const suggestionsBox = document.getElementById("searchSuggestions");
+    const caseTitle = document.getElementById("caseTitle");
+    const caseSubtitle = document.getElementById("caseSubtitle");
+
+    function updateCaseBanner(title, subtitle = "") {
+      caseTitle.textContent = title || "الكيس الحالية: -";
+      caseSubtitle.textContent = subtitle || "";
+    }
+
+    function initHeaderForPage(pageName){
+      const backBtn = document.getElementById("btnBack");
+      const btnAccount = document.getElementById("btnAccount");
+      const menu = document.getElementById("accountMenu");
+      const logoutBtn = document.getElementById("menuLogout");
+
+      if (!backBtn || !btnAccount || !menu) return;
+
+      function setMenu(open){
+        menu.classList.toggle("open", open);
+        btnAccount.setAttribute("aria-expanded", open ? "true" : "false");
+        menu.setAttribute("aria-hidden", open ? "false" : "true");
+      }
+
+      btnAccount.onclick = (e) => {
+        e.stopPropagation();
+        setMenu(!menu.classList.contains("open"));
+      };
+
+      document.addEventListener("click", () => setMenu(false));
+      menu.addEventListener("click", (e) => e.stopPropagation());
+
+      if (logoutBtn){
+        logoutBtn.onclick = () => {
+          localStorage.removeItem("userRole");
+          localStorage.removeItem("currentUser");
+          localStorage.removeItem("authToken");
+          window.location.href = "index.html";
+        };
+      }
+
+      if (pageName === "chat.html"){
+        backBtn.style.display = "inline-flex";
+        backBtn.onclick = () => window.location.href = "connect.html";
+        return;
+      }
+
+      backBtn.style.display = "none";
+    }
+
+    function applyLang(lang){
+      document.documentElement.lang = lang;
+      document.documentElement.dir = (lang === "ar") ? "rtl" : "ltr";
+      localStorage.setItem("lang", lang);
+
+      const isAr = (lang === "ar");
+      const topSubtitle = document.getElementById("top-subtitle");
+      const langText = document.getElementById("langText");
+
+      if (topSubtitle) topSubtitle.textContent = isAr ? "منصة التحليل الجنائي الرقمي" : "Digital Forensics Platform";
+      if (langText) langText.textContent = isAr ? "AR" : "EN";
+
+      document.title = isAr ? "Whisper-WA | بناء التقرير" : "Whisper-WA | Report Builder";
+      setText("txt-export", isAr ? "تنزيل التقرير" : "Download Report");
+      setText("txt-analysis", isAr ? "تحليل" : "Analysis");
+      setText("txt-view", isAr ? "عرض التقرير" : "View Report");
+      setText("th-msg", isAr ? "الرسالة" : "Message");
+      setText("th-type", isAr ? "النوع" : "Type");
+      setText("th-num", isAr ? "الرقم" : "Number");
+      setText("th-time", isAr ? "التاريخ والوقت" : "Date & Time");
+
+      if (searchInput){
+        searchInput.placeholder = isAr
+          ? "بحث في المحادثات (كلمة، رقم، رابط)..."
+          : "Search chats (keyword, number, url)...";
+      }
+
+      if (!selectedCaseId) {
+        updateCaseBanner(
+          isAr ? "الكيس الحالية: -" : "Current Case: -",
+          isAr ? "بانتظار تحميل المحادثات" : "Waiting to load chats"
+        );
+      }
+    }
+
+    function setText(id, text) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = text;
+    }
+
+    function normalizeWord(text) {
+      return String(text || "")
+        .toLowerCase()
+        .replace(/[^\u0600-\u06FFa-zA-Z0-9@._:/+\-#]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function isUsefulWord(word) {
+      if (!word) return false;
+      return word.trim().length >= 1;
+    }
+
+    function detectSuggestionType(value) {
+      const v = String(value || "").toLowerCase();
+      if (/(https?:\/\/\S+|www\.\S+)/i.test(v)) return "رابط";
+      if (/\.(jpg|jpeg|png|gif|webp|bmp)\b/i.test(v)) return "صورة";
+      if (/^\+?\d[\d\s\-]{3,}$/.test(v) || /^\d{2,}$/.test(v)) return "رقم";
+      return "";
+    }
+
+    function suggestionIcon(type) {
+      if (type === "رابط") return "fa-link";
+      if (type === "رقم") return "fa-hashtag";
+      if (type === "صورة") return "fa-image";
+      if (type === "موقع") return "fa-location-dot";
+      return "fa-magnifying-glass";
+    }
+
+    function isLocationValue(value) {
+      return /(\b(location|gps|map|pin)\b|موقع|لوكيشن|إحداثيات|احداثيات|خريطة|-?\d{1,3}\.\d+\s*,\s*-?\d{1,3}\.\d+)/i.test(String(value || ""));
+    }
+
+    function buildSuggestionPool() {
+      const map = new Map();
+
+      chatsData.forEach(chat => {
+        (chat.messages || []).forEach(m => {
+          const text = String(m.text || "");
+
+          const urls = text.match(/https?:\/\/\S+|www\.\S+/gi) || [];
+          urls.forEach(url => {
+            const cleaned = url.trim();
+            const key = cleaned.toLowerCase();
+            if (!map.has(key)) {
+              map.set(key, { value: cleaned, type: "رابط", count: 1 });
+            } else {
+              map.get(key).count += 1;
+            }
+          });
+
+          const numbers = text.match(/(?<!\d)(?:\+?\d[\d\s\-]{3,}\d|\d{2,8})(?!\d)/g) || [];
+          numbers.forEach(num => {
+            const cleaned = num.trim();
+            const key = cleaned.toLowerCase();
+            if (!map.has(key)) {
+              map.set(key, { value: cleaned, type: "رقم", count: 1 });
+            } else {
+              map.get(key).count += 1;
+            }
+          });
+
+          const normalized = normalizeWord(text);
+          normalized.split(" ").forEach(word => {
+            const cleaned = word.trim();
+            if (!isUsefulWord(cleaned)) return;
+
+            const key = cleaned.toLowerCase();
+            if (!map.has(key)) {
+              map.set(key, { value: cleaned, type: detectSuggestionType(cleaned), count: 1 });
+            } else {
+              map.get(key).count += 1;
+            }
+          });
+        });
+      });
+
+      suggestionPool = Array.from(map.values())
+        .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value));
+    }
+
+    function getSuggestions(query) {
+      const q = String(query || "").toLowerCase();
+
+      let pool = suggestionPool;
+
+      if (activeTagFilter === "url") {
+        pool = pool.filter(item => item.type === "رابط");
+      } else if (activeTagFilter === "images") {
+        pool = pool.filter(item => item.type === "صورة");
+      } else if (activeTagFilter === "location") {
+        pool = pool.filter(item => isLocationValue(item.value));
+      }
+
+      if (!q) return pool.slice(0, 10);
+
+      return pool.filter(item => item.value.toLowerCase().includes(q)).slice(0, 10);
+    }
+
+    function renderSuggestions(query) {
+      const suggestions = getSuggestions(query);
+
+      if (!suggestions.length) {
+        hideSuggestions();
+        return;
+      }
+
+      suggestionsBox.innerHTML = "";
+
+      suggestions.forEach(item => {
+        const typeLabel = item.type || (isLocationValue(item.value) ? "موقع" : "");
+        const row = document.createElement("div");
+        row.className = "suggestion-item";
+        row.innerHTML = `
+          <div class="suggestion-left">
+            <i class="fa-solid ${suggestionIcon(typeLabel)}"></i>
+            <span class="suggestion-text">${escapeHtml(item.value)}</span>
+          </div>
+          <span class="suggestion-type">${typeLabel}</span>
+        `;
+
+        row.addEventListener("click", () => {
+          searchInput.value = item.value;
+          hideSuggestions();
+          applySearch(item.value);
+        });
+
+        suggestionsBox.appendChild(row);
+      });
+
+      suggestionsBox.classList.add("show");
+    }
+
+    function showTagSuggestions() {
+      renderSuggestions("");
+    }
+
+    function hideSuggestions() {
+      suggestionsBox.classList.remove("show");
+      suggestionsBox.innerHTML = "";
+    }
+
+    function escapeHtml(text) {
+      return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function escapeRegex(text) {
+      return String(text).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    }
+
+    function highlightText(text, query) {
+      const safeText = escapeHtml(text || "");
+      const q = String(query || "").trim();
+
+      if (!q) return safeText;
+
+      const regex = new RegExp(`(${escapeRegex(q)})`, "gi");
+      return safeText.replace(regex, `<mark class="search-hit">$1</mark>`);
+    }
+
+    function textHasUrl(text = "") {
+      return /(https?:\/\/\S+|www\.\S+)/i.test(text);
+    }
+
+    function textHasImage(text = "") {
+      return /\.(jpg|jpeg|png|gif|webp|bmp)\b/i.test(text);
+    }
+
+    function textHasLocation(text = "") {
+      return /(\b(location|gps|map|pin)\b|موقع|لوكيشن|إحداثيات|احداثيات|خريطة|-?\d{1,3}\.\d+\s*,\s*-?\d{1,3}\.\d+)/i.test(text);
+    }
+
+    function chatMatchesTag(chat, tag) {
+      if (tag === "all") return true;
+
+      const texts = (chat.messages || []).map(m => m.text || "");
+
+      if (tag === "url") return texts.some(t => textHasUrl(t));
+      if (tag === "images") return texts.some(t => textHasImage(t));
+      if (tag === "location") return texts.some(t => textHasLocation(t));
+
+      return true;
+    }
+
+    function chatMatchesQuery(chat, q) {
+      const query = String(q || "").trim();
+      if (!query) return true;
+
+      const qLower = query.toLowerCase();
+      const name = (chat.name || "").toLowerCase();
+      const number = (chat.number || "").toLowerCase();
+      const last = (chat.last_message || "").toLowerCase();
+      const messages = (chat.messages || []).map(m => (m.text || "").toLowerCase());
+
+      const isUrlQuery = /^(https?:\/\/|www\.)/i.test(query);
+      const isNumberQuery = /^[+\d][\d\s\-]{1,}$/.test(query);
+
+      if (isUrlQuery) {
+        return messages.some(t => textHasUrl(t) && t.includes(qLower));
+      }
+
+      if (activeTagFilter === "url") {
+        return messages.some(t => textHasUrl(t) && t.includes(qLower));
+      }
+
+      if (activeTagFilter === "images") {
+        return messages.some(t => textHasImage(t) && t.includes(qLower));
+      }
+
+      if (activeTagFilter === "location") {
+        return messages.some(t => textHasLocation(t) && t.includes(qLower));
+      }
+
+      if (isNumberQuery) {
+        if (number.includes(qLower)) return true;
+        return messages.some(t => t.includes(qLower));
+      }
+
+      if (query.length === 1) {
+        const oneCharRegex = new RegExp(escapeRegex(qLower), "i");
+        if (oneCharRegex.test(name)) return true;
+        if (oneCharRegex.test(number)) return true;
+        if (oneCharRegex.test(last)) return true;
+        return messages.some(t => oneCharRegex.test(t));
+      }
+
+      const wordRegex = new RegExp(escapeRegex(qLower), "i");
+      if (wordRegex.test(name)) return true;
+      if (wordRegex.test(number)) return true;
+      if (wordRegex.test(last)) return true;
+      return messages.some(t => wordRegex.test(t));
+    }
+
+    function applySearch(queryText = null) {
+      const q = (queryText !== null ? queryText : searchInput.value).trim();
+      currentSearchQuery = q;
+
+      const filtered = chatsData.filter(chat => {
+        return chatMatchesTag(chat, activeTagFilter) && chatMatchesQuery(chat, q);
+      });
+
+      selectedChatId = filtered.length ? filtered[0].id : null;
+
+      renderChatList(filtered);
+
+      if (selectedChatId) {
+        renderMessages(selectedChatId);
+      } else {
+        messageView.innerHTML = `<div class="empty-state">لا توجد رسائل مطابقة أو لا توجد محادثات في هذه الكيس</div>`;
+      }
+    }
+
+    function renderChatList(filteredChats = null) {
+      const chatsToRender = filteredChats || chatsData;
+      chatListContainer.innerHTML = "";
+
+      if (!chatsToRender.length) {
+        chatListContainer.innerHTML = `
+          <div class="chat-item active" data-chat-id="">
+            <div class="chat-info">
+              <h4>لا توجد محادثات</h4>
+              <p>لم يتم العثور على رسائل مطابقة أو الكيس فارغة</p>
+            </div>
+          </div>
+        `;
+        messageView.innerHTML = `<div class="empty-state">لا توجد محادثات لعرضها في هذه الكيس</div>`;
+        return;
+      }
+
+      chatsToRender.forEach((chat, index) => {
+        const item = document.createElement("div");
+        item.className = "chat-item" + (chat.id === selectedChatId ? " active" : "");
+        item.dataset.chatId = chat.id;
+
+        item.innerHTML = `
+          <input type="checkbox" checked>
+          <div class="chat-info">
+            <h4>${escapeHtml(chat.name || chat.number || "Unknown")}</h4>
+            <p>${escapeHtml(chat.last_message || "")}</p>
+          </div>
+          <span class="time">${escapeHtml(chat.last_time || "")}</span>
+        `;
+
+        item.addEventListener("click", (e) => {
+          if (e.target && e.target.tagName === "INPUT") return;
+
+          document.querySelectorAll(".chat-item").forEach(x => x.classList.remove("active"));
+          item.classList.add("active");
+          selectedChatId = chat.id;
+          renderMessages(selectedChatId);
+        });
+
+        chatListContainer.appendChild(item);
+
+        if (index === 0 && !selectedChatId) {
+          selectedChatId = chat.id;
+        }
+      });
+    }
+
+    function renderMessages(chatId) {
+      const chat = chatsData.find(c => c.id === chatId);
+      if (!chat) {
+        messageView.innerHTML = `<div class="empty-state">لم يتم العثور على المحادثة المطلوبة</div>`;
+        return;
+      }
+
+      selectedMessageIds.clear();
+      messageView.innerHTML = "";
+
+      let firstMatchedBox = null;
+
+      (chat.messages || []).forEach((m) => {
+        const box = document.createElement("div");
+        box.className = `msg ${m.type}`;
+        box.dataset.msgId = m.id;
+
+        const timeOnly = m.datetime && m.datetime.includes(" ")
+          ? m.datetime.split(" ")[1]
+          : (m.datetime || "");
+
+        const text = m.text || "";
+        const hasMatch = currentSearchQuery
+          ? text.toLowerCase().includes(currentSearchQuery.toLowerCase())
+          : false;
+
+        box.innerHTML = `
+          <p>${highlightText(text, currentSearchQuery)}</p>
+          <span class="msg-time">${escapeHtml(timeOnly)}</span>
+        `;
+
+        if (hasMatch && !firstMatchedBox) {
+          firstMatchedBox = box;
+          box.classList.add("focused-hit");
+        }
+
+        box.addEventListener("click", () => {
+          const id = box.dataset.msgId;
+          if (selectedMessageIds.has(id)) {
+            selectedMessageIds.delete(id);
+            box.classList.remove("selected");
+          } else {
+            selectedMessageIds.add(id);
+            box.classList.add("selected");
+          }
+        });
+
+        messageView.appendChild(box);
+      });
+
+      if (!chat.messages || !chat.messages.length) {
+        messageView.innerHTML = `<div class="empty-state">هذه المحادثة لا تحتوي على رسائل</div>`;
+        return;
+      }
+
+      if (firstMatchedBox) {
+        firstMatchedBox.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }
+
+    async function loadCasesFromBackend() {
+      try {
+        const res = await fetch(`${API_BASE}/api/cases`);
+        const data = await res.json();
+
+        if (!res.ok || !data.ok) {
+          console.error("Failed to load cases:", data);
+          updateCaseBanner("الكيس الحالية: -", "فشل تحميل قائمة الكيسات");
+          return;
+        }
+
+        casesData = data.cases || [];
+
+        if (!casesData.length) {
+          selectedCaseId = null;
+          localStorage.removeItem("case_id");
+          localStorage.removeItem("CURRENT_CASE_ID");
+          updateCaseBanner("الكيس الحالية: -", "لا توجد كيسات محفوظة بعد");
+          return;
+        }
+
+        const requestedCaseId =
+          urlParams.get("case_id") ||
+          localStorage.getItem("CURRENT_CASE_ID") ||
+          localStorage.getItem("case_id");
+
+        const requestedExists = requestedCaseId && casesData.some(c => c.case_id === requestedCaseId);
+
+        if (requestedExists) {
+          selectedCaseId = requestedCaseId;
+        } else {
+          selectedCaseId = casesData.length ? casesData[0].case_id : null;
+        }
+
+        localStorage.setItem("case_id", selectedCaseId);
+        localStorage.setItem("CURRENT_CASE_ID", selectedCaseId);
+
+        updateCaseBanner(`الكيس الحالية: ${selectedCaseId}`, `عدد الكيسات المحفوظة: ${casesData.length}`);
+      } catch (e) {
+        console.error("Cases API error:", e);
+        updateCaseBanner("الكيس الحالية: -", "تعذر الاتصال بالباك لتحميل الكيسات");
+      }
+    }
+
+    async function loadChatsForCase(caseId) {
+      if (!caseId) {
+        chatsData = [];
+        chatListContainer.innerHTML = `
+          <div class="chat-item active">
+            <div class="chat-info">
+              <h4>لا توجد كيس محددة</h4>
+              <p>ارجعي لصفحة الاتصال أو افتحي آخر كيس</p>
+            </div>
+          </div>
+        `;
+        messageView.innerHTML = `<div class="empty-state">لا توجد كيس محددة للعرض</div>`;
+        return;
+      }
+
+      localStorage.setItem("case_id", caseId);
+      localStorage.setItem("CURRENT_CASE_ID", caseId);
+
+      updateCaseBanner(`الكيس الحالية: ${caseId}`, "جاري تحميل المحادثات...");
+
+      try {
+        const res = await fetch(`${API_BASE}/api/messages/${caseId}`);
+        const data = await res.json();
+
+        if (!res.ok || !data.ok) {
+          console.error("Failed to load chats:", data.error || data);
+          chatListContainer.innerHTML = `
+            <div class="chat-item active">
+              <div class="chat-info">
+                <h4>خطأ</h4>
+                <p>${escapeHtml(data.error || "تعذر تحميل المحادثات")}</p>
+              </div>
+            </div>
+          `;
+          messageView.innerHTML = `<div class="empty-state">فشل تحميل محادثات ${escapeHtml(caseId)}</div>`;
+          chatsData = [];
+          suggestionPool = [];
+          hideSuggestions();
+          updateCaseBanner(`الكيس الحالية: ${caseId}`, `فشل التحميل: ${data.error || "Unknown error"}`);
+          return;
+        }
+
+        chatsData = data.chats || [];
+        selectedChatId = chatsData.length ? chatsData[0].id : null;
+
+        buildSuggestionPool();
+        applySearch();
+
+        if (chatsData.length) {
+          updateCaseBanner(`الكيس الحالية: ${caseId}`, `تم تحميل ${chatsData.length} محادثة`);
+        } else {
+          updateCaseBanner(`الكيس الحالية: ${caseId}`, "تم تحميل الكيس لكن لا توجد محادثات للعرض");
+        }
+      } catch (e) {
+        console.error("Backend error:", e);
+        chatListContainer.innerHTML = `
+          <div class="chat-item active">
+            <div class="chat-info">
+              <h4>Connection Error</h4>
+              <p>تعذر الاتصال بالباك</p>
+            </div>
+          </div>
+        `;
+        messageView.innerHTML = `<div class="empty-state">تعذر الاتصال بالباك لتحميل المحادثات</div>`;
+        suggestionPool = [];
+        hideSuggestions();
+        updateCaseBanner(`الكيس الحالية: ${caseId}`, "خطأ اتصال مع الباك");
+      }
+    }
+
+    function appendRow({ text, type, number, datetime }) {
+      const tr = document.createElement("tr");
+
+      const tdMsg = document.createElement("td");
+      tdMsg.className = "cell-msg";
+      tdMsg.textContent = text;
+
+      const tdType = document.createElement("td");
+      const badge = document.createElement("span");
+      badge.className = `badge-type ${type === "sent" ? "badge-sent" : "badge-recv"}`;
+      badge.textContent = (type === "sent") ? "Sent" : "Received";
+      tdType.appendChild(badge);
+
+      const tdNum = document.createElement("td");
+      tdNum.textContent = number;
+
+      const tdTime = document.createElement("td");
+      tdTime.textContent = datetime;
+
+      tr.appendChild(tdMsg);
+      tr.appendChild(tdType);
+      tr.appendChild(tdNum);
+      tr.appendChild(tdTime);
+
+      tbody.appendChild(tr);
+    }
+
+    addBtn.addEventListener("click", () => {
+      const chat = chatsData.find(c => c.id === selectedChatId);
+      if (!chat) return;
+
+      tbody.innerHTML = "";
+      const hasSelected = selectedMessageIds.size > 0;
+
+      if (hasSelected) {
+        chat.messages
+          .filter(m => selectedMessageIds.has(m.id))
+          .forEach(m => appendRow({
+            text: m.text,
+            type: m.type,
+            number: chat.number,
+            datetime: m.datetime
+          }));
+      } else {
+        chat.messages.forEach(m => appendRow({
+          text: m.text,
+          type: m.type,
+          number: chat.number,
+          datetime: m.datetime
+        }));
+      }
+    });
+
+    function collectReportRows() {
+      const rows = [...tbody.querySelectorAll("tr")];
+      return rows.map(r => {
+        const cols = [...r.querySelectorAll("td")];
+        return {
+          message: cols[0] ? cols[0].innerText.trim() : "",
+          type: cols[1] ? cols[1].innerText.trim() : "",
+          number: cols[2] ? cols[2].innerText.trim() : "",
+          datetime: cols[3] ? cols[3].innerText.trim() : ""
+        };
+      });
+    }
+
+    async function downloadReport(format) {
+      const rows = collectReportRows();
+
+      if (!rows.length) {
+        alert("أضيفي الرسائل للتقرير أولًا");
+        return;
+      }
+
+      let investigator = "Unknown";
+      try {
+        const user = JSON.parse(localStorage.getItem("currentUser") || "{}");
+        investigator = user.name || "Unknown";
+      } catch (e) {}
+
+      const caseNumber = localStorage.getItem("CURRENT_CASE_ID") || localStorage.getItem("case_id") || "Case_001";
+
+      try {
+        const res = await fetch(`${API_BASE}/api/export/${format}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            messages: rows,
+            investigator: investigator,
+            caseNumber: caseNumber,
+            status: "completed"
+          })
+        });
+
+        if (!res.ok) {
+          let errText = "فشل تنزيل التقرير";
+          try {
+            const errJson = await res.json();
+            errText = errJson.error || errText;
+          } catch (_) {}
+          console.error("Export failed:", errText);
+          alert(errText);
+          return;
+        }
+
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = format === "pdf" ? `${caseNumber}_forensic_report.pdf` : `${caseNumber}_forensic_report.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      } catch (e) {
+        console.error("Export error:", e);
+        alert("حدث خطأ أثناء تنزيل التقرير");
+      }
+    }
+
+    exportBtn.addEventListener("click", async () => {
+      const lang = document.documentElement.lang || "ar";
+      const choice = prompt(
+        lang === "ar"
+          ? "اكتبي نوع الملف: pdf أو csv"
+          : "Enter export format: pdf or csv",
+        "pdf"
+      );
+
+      if (!choice) return;
+
+      const format = choice.trim().toLowerCase();
+
+      if (format !== "pdf" && format !== "csv") {
+        alert(lang === "ar" ? "الصيغة غير صحيحة" : "Invalid format");
+        return;
+      }
+
+      await downloadReport(format);
+    });
+
+    viewBtn.addEventListener("click", () => {
+      localStorage.setItem("userRole", localStorage.getItem("userRole") || "user");
+      localStorage.setItem(
+        "currentUser",
+        localStorage.getItem("currentUser") || JSON.stringify({ name: "Unknown", role: "user" })
+      );
+      window.location.href = "reports.html";
+    });
+
+    if (searchInput) {
+      searchInput.addEventListener("input", () => {
+        const q = searchInput.value.trim();
+        renderSuggestions(q);
+        applySearch(q);
+      });
+
+      searchInput.addEventListener("focus", () => {
+        if (searchInput.value.trim()) {
+          renderSuggestions(searchInput.value.trim());
+        } else if (activeTagFilter !== "all") {
+          showTagSuggestions();
+        }
+      });
+
+      searchInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          hideSuggestions();
+          applySearch(searchInput.value.trim());
+        }
+      });
+    }
+
+    document.querySelectorAll(".tag").forEach(tag => {
+      tag.addEventListener("click", () => {
+        activeTagFilter = tag.dataset.tag || "all";
+        document.querySelectorAll(".tag").forEach(t => t.classList.remove("active-tag"));
+        tag.classList.add("active-tag");
+
+        applySearch(searchInput.value.trim());
+
+        if (activeTagFilter === "all") {
+          if (searchInput.value.trim()) {
+            renderSuggestions(searchInput.value.trim());
+          } else {
+            hideSuggestions();
+          }
+        } else {
+          showTagSuggestions();
+        }
+      });
+    });
+
+    document.addEventListener("click", (e) => {
+      const insideSearch = e.target.closest(".search-input-wrapper");
+      const insideTags = e.target.closest(".tags-row");
+      if (!insideSearch && !insideTags) {
+        hideSuggestions();
+      }
+    });
+
+    window.addEventListener("DOMContentLoaded", async () => {
+      try {
+        const res = await fetch("header.html");
+        const headerHtml = await res.text();
+        const holder = document.getElementById("header-placeholder");
+        if (holder) holder.innerHTML = headerHtml;
+
+        initHeaderForPage("chat.html");
+
+        const saved = localStorage.getItem("lang") || "ar";
+        applyLang(saved);
+
+        await loadCasesFromBackend();
+
+        if (selectedCaseId) {
+          await loadChatsForCase(selectedCaseId);
+        } else {
+          updateCaseBanner("الكيس الحالية: -", "لا توجد كيس محددة حاليًا");
+        }
+      } catch (e) {
+        console.error("Header load error:", e);
+
+        await loadCasesFromBackend();
+
+        if (selectedCaseId) {
+          await loadChatsForCase(selectedCaseId);
+        } else {
+          updateCaseBanner("الكيس الحالية: -", "لا توجد كيس محددة حاليًا");
+        }
+      }
+    });
+  </script>
+</body>
+</html>

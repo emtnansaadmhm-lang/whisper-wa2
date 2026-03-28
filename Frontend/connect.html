@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Whisper-WA | Connect</title>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --primary-dark:#1f5f3b;
+      --primary-mid:#3f9b5f;
+      --primary-light:#5fbf7a;
+      --accent-glow:#8fd9a8;
+      --bg-dark:#0e1a12;
+      --glass-bg: rgba(20, 40, 30, 0.65);
+      --glass-border: rgba(95, 191, 122, 0.3);
+      --text-white:#ffffff;
+      --text-muted:#c2dec9;
+    }
+    *{ box-sizing:border-box; margin:0; padding:0; }
+    body{
+      font-family:'Tajawal',sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-white);
+      height:100vh;
+      overflow:hidden;
+      background-image:
+        linear-gradient(rgba(31,95,59,0.10) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(31,95,59,0.10) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+    .animated-bg-logo{
+      position: fixed;
+      top:50%;
+      left:50%;
+      transform: translate(-50%,-50%);
+      z-index:-1;
+      width: 600px;
+      pointer-events:none;
+      opacity:0.18;
+      animation: cyberGlowPulse 8s ease-in-out infinite alternate;
+    }
+    .animated-bg-logo img{
+      width:100%;
+      filter: drop-shadow(0 0 30px var(--primary-mid));
+    }
+    @keyframes cyberGlowPulse{
+      0%{ opacity:0.12; transform: translate(-50%,-50%) scale(0.96); }
+      100%{ opacity:0.28; transform: translate(-50%,-50%) scale(1.04); }
+    }
+    .main-container{
+      display:flex;
+      flex-direction:column;
+      height:100vh;
+      padding:24px;
+      gap:18px;
+      position:relative;
+      z-index:1;
+    }
+    .center{
+      flex:1;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .card{
+      width:min(920px, 95vw);
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(14px);
+      border-radius: 22px;
+      padding: 26px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.35);
+    }
+    .card h1{
+      font-size: 1.7rem;
+      margin-bottom: 6px;
+    }
+    .subtitle{
+      color: var(--text-muted);
+      margin-bottom: 18px;
+      line-height:1.6;
+    }
+    .tabs{
+      display:flex;
+      gap:0;
+      background: rgba(0,0,0,0.18);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 16px;
+      overflow:hidden;
+      margin-bottom: 14px;
+    }
+    .tab-btn{
+      flex:1;
+      padding: 12px 14px;
+      cursor:pointer;
+      background: transparent;
+      color: var(--text-muted);
+      border: none;
+      font-weight:900;
+      transition:0.25s;
+    }
+    .tab-btn.active{
+      background: rgba(95,191,122,0.16);
+      color: var(--accent-glow);
+      box-shadow: inset 0 -3px 0 rgba(143,217,168,0.9);
+    }
+    .tab-content{ display:none; }
+    .tab-content.active{ display:block; }
+
+    .panel{
+      background: rgba(0,0,0,0.16);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 18px;
+      padding: 16px;
+    }
+
+    label{
+      display:block;
+      color: var(--text-muted);
+      font-weight:800;
+      margin: 8px 0 8px;
+    }
+    input{
+      width:100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--glass-border);
+      background: rgba(0,0,0,0.24);
+      color: white;
+      outline:none;
+      font-size: 1rem;
+    }
+    input::placeholder{
+      color: rgba(194,222,201,0.65);
+    }
+
+    .note{
+      margin-top: 10px;
+      color: rgba(194,222,201,0.92);
+      font-size: 0.95rem;
+      line-height:1.55;
+    }
+
+    .actions{
+      display:flex;
+      gap: 12px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+
+    .btn{
+      flex:1;
+      padding: 12px 14px;
+      border-radius: 14px;
+      cursor:pointer;
+      font-weight:900;
+      border: none;
+      transition:0.25s;
+      user-select:none;
+      min-width: 180px;
+      font-family:'Tajawal',sans-serif;
+      font-size: 1rem;
+      text-align:center;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .btn-primary{
+      background: linear-gradient(45deg, var(--primary-dark), var(--primary-mid));
+      color:white;
+    }
+    .btn-ghost{
+      background: rgba(0,0,0,0.18);
+      color: var(--accent-glow);
+      border: 1px solid rgba(255,255,255,0.10);
+    }
+
+    .alert{
+      margin-top: 16px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.10);
+      font-weight:900;
+      white-space: pre-wrap;
+      line-height: 1.65;
+    }
+    .alert.hidden{ display:none; }
+    .alert.danger{
+      background: rgba(255,107,107,0.12);
+      border-color: rgba(255,107,107,0.30);
+      color: #ffd1d1;
+    }
+    .hidden-input{ display:none; }
+
+    .modal-overlay{
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.65);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      padding: 20px;
+    }
+    .modal-overlay.show{
+      display: flex;
+    }
+    .modal-box{
+      width: min(680px, 95vw);
+      max-height: 80vh;
+      overflow: hidden;
+      background: rgba(14,26,18,0.96);
+      border: 1px solid rgba(95, 191, 122, 0.35);
+      border-radius: 20px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+      display: flex;
+      flex-direction: column;
+    }
+    .modal-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding: 16px 18px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .modal-title{
+      font-size: 1.1rem;
+      font-weight: 900;
+      color: var(--text-white);
+    }
+    .modal-close{
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.2rem;
+      cursor: pointer;
+    }
+    .modal-body{
+      padding: 14px 18px 18px;
+      overflow: auto;
+    }
+    .case-list{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .case-item{
+      width:100%;
+      text-align:left;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: white;
+      border-radius: 14px;
+      padding: 14px;
+      cursor:pointer;
+      transition: 0.2s;
+      font-family:'Tajawal',sans-serif;
+    }
+    .case-item:hover{
+      border-color: rgba(95,191,122,0.55);
+      background: rgba(95,191,122,0.10);
+    }
+    .case-id{
+      font-weight: 900;
+      font-size: 1rem;
+      margin-bottom: 4px;
+      color: var(--accent-glow);
+    }
+    .case-date{
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+    .empty-state{
+      color: var(--text-muted);
+      text-align:center;
+      padding: 20px 0;
+      line-height: 1.8;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="animated-bg-logo">
+    <img src="logo.png" alt="Background Logo">
+  </div>
+
+  <div class="main-container">
+    <div id="header-placeholder"></div>
+
+    <main class="center">
+      <section class="card">
+        <h1>Connect Device</h1>
+        <p class="subtitle">Select a connection method, then click Connect to start backend workflow.</p>
+
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="wifiTab" id="tabWifi" type="button">Wi-Fi (IP:PORT)</button>
+          <button class="tab-btn" data-tab="usbTab" id="tabUsb" type="button">USB</button>
+        </div>
+
+        <div class="tab-content active" id="wifiTab">
+          <div class="panel">
+            <form id="wifiForm" action="http://127.0.0.1:5000/api/device/connect-and-open" method="GET">
+              <label for="ipInput">Device IP:PORT</label>
+              <input id="ipInput" name="ip_port" type="text" placeholder="e.g. 192.168.56.101:5555" />
+              <input class="hidden-input" type="hidden" name="method" value="wifi" />
+              <input class="hidden-input" type="hidden" name="frontend_base" id="wifi_frontend_base" />
+              <input class="hidden-input" type="hidden" name="wadecrypt_path" value="wadecrypt.exe" />
+              <input class="hidden-input" type="hidden" name="timeout_sec" value="180" />
+
+              <div class="note">Enter IP:PORT then press Connect.</div>
+
+              <div class="actions">
+                <button class="btn btn-primary" id="btnWifiConnect" type="submit">Connect</button>
+                <button class="btn btn-ghost" id="btnWifiExtract" type="button">View Extract Chat</button>
+                <button class="btn btn-ghost" id="btnWifiOldCases" type="button">Open Old Cases</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="tab-content" id="usbTab">
+          <div class="panel">
+            <form id="usbForm" action="http://127.0.0.1:5000/api/device/connect-and-open" method="GET">
+              <div class="note">
+                1) Connect device using USB cable.<br>
+                2) Enable <b>USB Debugging</b>.<br>
+                3) Press <b>Connect</b>.
+              </div>
+
+              <input class="hidden-input" type="hidden" name="method" value="usb" />
+              <input class="hidden-input" type="hidden" name="frontend_base" id="usb_frontend_base" />
+              <input class="hidden-input" type="hidden" name="wadecrypt_path" value="wadecrypt.exe" />
+              <input class="hidden-input" type="hidden" name="timeout_sec" value="180" />
+
+              <div class="actions">
+                <button class="btn btn-primary" id="btnUsbConnect" type="submit">Connect</button>
+                <button class="btn btn-ghost" id="btnUsbExtract" type="button">View Extract Chat</button>
+                <button class="btn btn-ghost" id="btnUsbOldCases" type="button">Open Old Cases</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="alert hidden" id="alertBox"></div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-overlay" id="casesModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title">Old Cases</div>
+        <button class="modal-close" id="closeCasesModal" type="button">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="case-list" id="caseList"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const API_BASE = "http://127.0.0.1:5000";
+
+  const alertBox = document.getElementById("alertBox");
+  const ipInput = document.getElementById("ipInput");
+
+  const btnWifiExtract = document.getElementById("btnWifiExtract");
+  const btnUsbExtract = document.getElementById("btnUsbExtract");
+  const btnWifiOldCases = document.getElementById("btnWifiOldCases");
+  const btnUsbOldCases = document.getElementById("btnUsbOldCases");
+
+  const tabBtns = document.querySelectorAll(".tab-btn");
+  const tabs = document.querySelectorAll(".tab-content");
+
+  const wifiForm = document.getElementById("wifiForm");
+  const usbForm = document.getElementById("usbForm");
+  const wifiFrontendBase = document.getElementById("wifi_frontend_base");
+  const usbFrontendBase = document.getElementById("usb_frontend_base");
+
+  const casesModal = document.getElementById("casesModal");
+  const closeCasesModal = document.getElementById("closeCasesModal");
+  const caseList = document.getElementById("caseList");
+
+  function showAlert(type, text){
+    alertBox.classList.remove("hidden");
+    alertBox.className = "alert " + type;
+    alertBox.textContent = text;
+  }
+
+  function hideAlert(){
+    alertBox.classList.add("hidden");
+    alertBox.textContent = "";
+  }
+
+  function openChat(caseId){
+    localStorage.setItem("case_id", caseId);
+    localStorage.setItem("CURRENT_CASE_ID", caseId);
+
+    const target = new URL(`chat.html?case_id=${encodeURIComponent(caseId)}`, window.location.href).href;
+    window.location.href = target;
+  }
+
+  async function fetchCases(){
+    const res = await fetch(`${API_BASE}/api/cases`);
+    const data = await res.json();
+
+    if(!res.ok || !data.ok){
+      throw new Error("Failed to load cases.");
+    }
+
+    return Array.isArray(data.cases) ? data.cases : [];
+  }
+
+  async function goToLastExtractChat(){
+    hideAlert();
+
+    try{
+      const cases = await fetchCases();
+
+      if(!cases.length){
+        showAlert("danger", "No extracted chats found yet.");
+        return;
+      }
+
+      const latestCase = cases.sort((a, b) =>
+  new Date(b.created_at) - new Date(a.created_at)
+)[0];
+
+const latestCaseId = latestCase.case_id;
+      openChat(latestCaseId);
+    }catch(e){
+      showAlert("danger", `Error: ${e.message}`);
+    }
+  }
+
+  function showCasesModal(){
+    casesModal.classList.add("show");
+  }
+
+  function hideCasesModal(){
+    casesModal.classList.remove("show");
+    caseList.innerHTML = "";
+  }
+
+  async function openOldCasesModal(){
+    hideAlert();
+
+    try{
+      const cases = await fetchCases();
+
+      showCasesModal();
+
+      if(!cases.length){
+        caseList.innerHTML = `
+          <div class="empty-state">
+            No old cases found yet.
+          </div>
+        `;
+        return;
+      }
+
+      caseList.innerHTML = cases.map(c => {
+       const createdAt = c.created_at_text || "No date";
+        return `
+          <button class="case-item" type="button" data-case-id="${c.case_id}">
+            <div class="case-id">${c.case_id}</div>
+            <div class="case-date">${createdAt}</div>
+          </button>
+        `;
+      }).join("");
+
+      document.querySelectorAll(".case-item").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const caseId = btn.getAttribute("data-case-id");
+          openChat(caseId);
+        });
+      });
+
+    }catch(e){
+      showAlert("danger", `Error: ${e.message}`);
+    }
+  }
+
+  btnWifiExtract.addEventListener("click", goToLastExtractChat);
+  btnUsbExtract.addEventListener("click", goToLastExtractChat);
+
+  btnWifiOldCases.addEventListener("click", openOldCasesModal);
+  btnUsbOldCases.addEventListener("click", openOldCasesModal);
+
+  closeCasesModal.addEventListener("click", hideCasesModal);
+
+  casesModal.addEventListener("click", (e) => {
+    if(e.target === casesModal){
+      hideCasesModal();
+    }
+  });
+
+  tabBtns.forEach(btn => {
+    btn.addEventListener("click", () => {
+      tabBtns.forEach(b => b.classList.remove("active"));
+      tabs.forEach(t => t.classList.remove("active"));
+      btn.classList.add("active");
+      document.getElementById(btn.dataset.tab).classList.add("active");
+      hideAlert();
+    });
+  });
+
+  window.addEventListener("DOMContentLoaded", async () => {
+    const frontendBase = window.location.href.replace(/\/[^\/?#]+(\?.*)?$/, "");
+    wifiFrontendBase.value = frontendBase;
+    usbFrontendBase.value = frontendBase;
+
+    wifiForm.addEventListener("submit", (e) => {
+      hideAlert();
+      let ip = ipInput.value.trim();
+
+      if(!ip){
+        e.preventDefault();
+        showAlert("danger", "Please enter IP:PORT");
+        return;
+      }
+
+      if(!ip.includes(":")){
+        ipInput.value = `${ip}:5555`;
+      }
+    });
+
+    try{
+      const res = await fetch("header.html");
+      const headerHtml = await res.text();
+      const placeholder = document.getElementById("header-placeholder");
+      placeholder.innerHTML = "";
+
+      const temp = document.createElement("div");
+      temp.innerHTML = headerHtml;
+
+      const scripts = temp.querySelectorAll("script");
+      scripts.forEach(s => s.remove());
+      placeholder.append(...temp.childNodes);
+
+      scripts.forEach(old => {
+        const s = document.createElement("script");
+        if(old.src) s.src = old.src;
+        else s.textContent = old.textContent;
+        document.body.appendChild(s);
+      });
+    }catch(e){
+      console.error("HEADER LOAD ERROR:", e);
+    }
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Whisper-WA</title>
+
+<style>
+:root {
+    --green-dark: #0B3D2A;
+    --green-main: #0F6B3A;
+    --green-light: #9BE3B4;
+    --green-accent: #2FA66A;
+    --text-light: #EAF7F0;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: "Segoe UI", Arial, sans-serif;
+    height: 100vh;
+    background: linear-gradient(135deg, #071F16, #0F6B3A);
+    color: var(--text-light);
+    overflow: hidden;
+}
+
+/* Background effect */
+.background-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(155, 227, 180, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(155, 227, 180, 0.05) 1px, transparent 1px);
+    background-size: 60px 60px;
+    z-index: 0;
+}
+
+/* Main layout */
+.main {
+    position: relative;
+    z-index: 1;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 40px;
+}
+
+/* Logo */
+.logo {
+    width: 460px;
+    margin-bottom: 55px;
+}
+
+/* Title */
+h1 {
+    font-size: 48px;
+    margin: 0;
+    letter-spacing: 2px;
+    color: var(--green-light);
+}
+
+h2 {
+    font-size: 20px;
+    font-weight: normal;
+    margin: 10px 0 30px;
+    color: #CFEFE0;
+    letter-spacing: 1px;
+}
+
+/* Description */
+.description {
+    max-width: 720px;
+    font-size: 17px;
+    line-height: 1.8;
+    margin-bottom: 50px;
+    color: #E2F5EC;
+}
+
+/* Button */
+.btn {
+    background: linear-gradient(135deg, #9BE3B4, #2FA66A);
+    color: #062016;
+    border: none;
+    padding: 16px 48px;
+    border-radius: 50px;
+    font-size: 17px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.35s ease;
+}
+
+.btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+}
+
+/* Footer text */
+.footer {
+    position: absolute;
+    bottom: 25px;
+    font-size: 13px;
+    color: #BFE8D5;
+    letter-spacing: 0.5px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="background-grid"></div>
+
+<div class="main">
+
+    <img src="logo.png" alt="Whisper-WA Logo" class="logo">
+
+    <h1>Whisper-WA</h1>
+    <h2>Digital Forensic Analysis Tool</h2>
+
+    <p class="description">
+        Whisper-WA is a digital forensic system designed to analyze WhatsApp data,
+        support investigative processes, and generate structured forensic reports
+        within a secure and controlled environment.
+    </p>
+
+    <a href="auth.html">
+        <button class="btn">Sign In</button>
+    </a>
+
+</div>
+
+<div class="footer">
+    © 2026 Whisper-WA • Digital Forensics Platform
+</div>
+
+</body>
+</html>

@@ -1,0 +1,110 @@
+[
+  {
+    "id": 1773900178656,
+    "investigator": "Unknown",
+    "date": "2026-03-19",
+    "time": "09:02",
+    "caseNumber": "---",
+    "deviceInfo": "---",
+    "status": "completed",
+    "fileName": "forensic_report_CASE_1773900178656.pdf",
+    "filePath": "C:\\Users\\Emtnan\\Desktop\\whisper-wa-main\\Backend\\saved_reports\\forensic_report_CASE_1773900178656.pdf",
+    "fileType": "pdf"
+  },
+  {
+    "id": 1773901251604,
+    "investigator": "Unknown",
+    "date": "2026-03-19",
+    "time": "09:20",
+    "caseNumber": "---",
+    "deviceInfo": "---",
+    "status": "completed",
+    "fileName": "forensic_report_CASE_1773901251604.pdf",
+    "filePath": "C:\\Users\\Emtnan\\Desktop\\whisper-wa-main\\Backend\\saved_reports\\forensic_report_CASE_1773901251604.pdf",
+    "fileType": "pdf"
+  },
+  {
+    "id": 1773901681515,
+    "investigator": "System Administrator",
+    "date": "2026-03-19",
+    "time": "09:28",
+    "caseNumber": "Case_001",
+    "deviceInfo": "---",
+    "status": "completed",
+    "fileName": "forensic_report_Case_001_1773901681515.pdf",
+    "filePath": "C:\\Users\\Emtnan\\Desktop\\whisper-wa-main\\Backend\\saved_reports\\forensic_report_Case_001_1773901681515.pdf",
+    "fileType": "pdf"
+  },
+  {
+    "id": 1773901799110,
+    "investigator": "Unknown",
+    "date": "2026-03-19",
+    "time": "09:29",
+    "caseNumber": "---",
+    "deviceInfo": "---",
+    "status": "completed",
+    "fileName": "forensic_report_CASE_1773901799110.pdf",
+    "filePath": "C:\\Users\\Emtnan\\Desktop\\whisper-wa-main\\Backend\\saved_reports\\forensic_report_CASE_1773901799110.pdf",
+    "fileType": "pdf"
+  },
+  {
+    "id": 1773902542062,
+    "investigator": "System Administrator",
+    "date": "2026-03-19",
+    "time": "09:42",
+    "caseNumber": "Case_001",
+    "deviceInfo": "---",
+    "status": "completed",
+    "fileName": "forensic_report_Case_001_1773902542062.pdf",
+    "filePath": "C:\\Users\\Emtnan\\Desktop\\whisper-wa-main\\Backend\\saved_reports\\forensic_report_Case_001_1773902542062.pdf",
+    "fileType": "pdf"
+  },
+  {
+    "id": 1773913247770,
+    "investigator": "System Administrator",
+    "date": "2026-03-19",
+    "time": "12:40",
+    "caseNumber": "Case_001",
+    "deviceInfo": "---",
+    "status": "completed",
+    "fileName": "forensic_report_Case_001_1773913247770.pdf",
+    "filePath": "C:\\Users\\Emtnan\\Desktop\\whisper-wa-main\\Backend\\saved_reports\\forensic_report_Case_001_1773913247770.pdf",
+    "fileType": "pdf"
+  },
+  {
+    "id": 1774074991769,
+    "investigator": "System Administrator",
+    "date": "2026-03-21",
+    "time": "09:36",
+    "caseNumber": "Case_034",
+    "deviceInfo": "---",
+    "status": "completed",
+    "fileName": "forensic_report_Case_034_1774074991769.pdf",
+    "filePath": "C:\\Users\\Emtnan\\Desktop\\whisper-wa-main\\Backend\\saved_reports\\forensic_report_Case_034_1774074991769.pdf",
+    "fileType": "pdf"
+  },
+  {
+    "id": 1774081283673,
+    "investigator": "System Administrator",
+    "date": "2026-03-21",
+    "time": "11:21",
+    "caseNumber": "Case_044",
+    "deviceInfo": "---",
+    "status": "completed",
+    "fileName": "forensic_report_Case_044_1774081283673.pdf",
+    "filePath": "C:\\Users\\Emtnan\\Desktop\\whisper-wa-main\\Backend\\saved_reports\\forensic_report_Case_044_1774081283673.pdf",
+    "fileType": "pdf"
+  },
+  {
+    "id": 1774514703527,
+    "investigator": "M",
+    "date": "2026-03-26",
+    "time": "11:45",
+    "caseNumber": "Case_066",
+    "deviceInfo": "---",
+    "status": "completed",
+    "fileName": "forensic_report_Case_066_1774514703527.pdf",
+    "filePath": "C:\\Users\\Emtnan\\Desktop\\whisper-wa-main\\Backend\\saved_reports\\forensic_report_Case_066_1774514703527.pdf",
+    "fileType": "pdf"
+  }
+]

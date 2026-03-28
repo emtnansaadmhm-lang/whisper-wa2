@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Whisper-WA | الطلب قيد المراجعة</title>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --primary-dark:#1f5f3b;
+      --primary-mid:#3f9b5f;
+      --primary-light:#5fbf7a;
+      --accent-glow:#8fd9a8;
+      --bg-dark:#0e1a12;
+      --glass-bg: rgba(20, 40, 30, 0.65);
+      --glass-border: rgba(95, 191, 122, 0.3);
+      --text-white:#ffffff;
+      --text-muted:#c2dec9;
+    }
+
+    *{ box-sizing:border-box; margin:0; padding:0; }
+
+    body{
+      font-family:'Tajawal',sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-white);
+      min-height:100vh;
+      overflow-y: auto;
+      padding: 20px;
+      background-image:
+        radial-gradient(1200px 700px at 20% 10%, rgba(95,191,122,0.12), transparent 55%),
+        radial-gradient(900px 600px at 85% 20%, rgba(143,217,168,0.10), transparent 55%),
+        linear-gradient(rgba(31,95,59,0.10) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(31,95,59,0.10) 1px, transparent 1px);
+      background-size: auto, auto, 40px 40px, 40px 40px;
+    }
+
+    .animated-bg-logo{
+      position: fixed;
+      top:50%; left:50%;
+      transform: translate(-50%,-50%);
+      z-index:-1; width: 620px;
+      opacity:0.18; pointer-events: none;
+      animation: glow 8s ease-in-out infinite alternate;
+    }
+
+    .animated-bg-logo img{
+      width:100%;
+      filter: drop-shadow(0 0 30px var(--primary-mid));
+    }
+
+    @keyframes glow{
+      from{ opacity:0.1; transform:translate(-50%,-50%) scale(0.96); }
+      to{ opacity:0.26; transform:translate(-50%,-50%) scale(1.04); }
+    }
+
+    .ww-topbar{
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(12px);
+      border-radius: 16px;
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.22);
+      position: relative;
+      z-index: 9999;
+    }
+
+    .ww-left{
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+
+    .ww-icon-btn{
+      border:none;
+      background: rgba(0,0,0,0.18);
+      color:#c2dec9;
+      width:38px;
+      height:38px;
+      border-radius:12px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      transition:0.2s;
+      text-decoration:none;
+      font-size:1rem;
+    }
+
+    .ww-icon-btn:hover{
+      background: rgba(95,191,122,0.14);
+      color:#8fd9a8;
+      transform: translateY(-1px);
+    }
+
+    .ww-brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+
+    .ww-logo{
+      height:42px;
+      width:auto;
+      filter: drop-shadow(0 0 6px rgba(63,155,95,0.5));
+    }
+
+    .ww-title{
+      display:flex;
+      flex-direction:column;
+      line-height:1.1;
+    }
+
+    .ww-title b{
+      font-size:1.15rem;
+      color:#fff;
+    }
+
+    .ww-title span{
+      color:#c2dec9;
+      font-size:0.85rem;
+      margin-top:4px;
+    }
+
+    .ww-lang-btn{
+      background: rgba(95,191,122,0.10);
+      border: 1px solid rgba(95,191,122,0.3);
+      color:#8fd9a8;
+      padding: 8px 14px;
+      border-radius: 999px;
+      cursor:pointer;
+      font-weight:900;
+      font-family:inherit;
+      transition:0.25s;
+      user-select:none;
+    }
+
+    .ww-lang-btn:hover{
+      background: rgba(95,191,122,0.18);
+      transform: translateY(-1px);
+    }
+
+    .page-container{
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .main-container{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-height: calc(100vh - 120px);
+      padding: 40px 0;
+    }
+
+    .card{
+      width:min(650px,95vw);
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(14px);
+      border-radius: 22px;
+      padding: 40px 32px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.35);
+      text-align: center;
+      position: relative;
+      z-index: 10;
+    }
+
+    .icon-container{
+      width:100px;
+      height:100px;
+      margin: 0 auto 24px;
+      border-radius: 50%;
+      background: rgba(255,193,7,0.15);
+      border: 2px solid rgba(255,193,7,0.3);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .icon-container i{
+      font-size:3rem;
+      color:#ffc857;
+    }
+
+    @keyframes pulse{
+      0%,100%{ transform:scale(1); }
+      50%{ transform:scale(1.05); }
+    }
+
+    h1{
+      font-size:2rem;
+      margin-bottom:12px;
+      color:var(--primary-light);
+    }
+
+    .subtitle{
+      font-size:1.05rem;
+      color:var(--text-muted);
+      margin-bottom:28px;
+      line-height:1.6;
+    }
+
+    .info-box{
+      background: rgba(0,0,0,0.2);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 28px;
+      text-align:start;
+    }
+
+    .info-box h3{
+      font-size:1.1rem;
+      margin-bottom:14px;
+      color:var(--accent-glow);
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+
+    .info-list{
+      list-style:none;
+      padding:0;
+    }
+
+    .info-list li{
+      padding:10px 0;
+      border-bottom:1px solid rgba(255,255,255,0.05);
+      display:flex;
+      align-items:flex-start;
+      gap:12px;
+      font-size:0.95rem;
+      line-height:1.6;
+      color:rgba(255,255,255,0.9);
+    }
+
+    .info-list li:last-child{
+      border-bottom:none;
+    }
+
+    .info-list li i{
+      color:var(--primary-light);
+      margin-top:3px;
+      flex-shrink:0;
+    }
+
+    .note{
+      background: rgba(99,179,237,0.1);
+      border: 1px solid rgba(99,179,237,0.25);
+      border-radius:12px;
+      padding:16px;
+      margin-bottom:24px;
+      font-size:0.9rem;
+      line-height:1.6;
+      color:#d1e7ff;
+      text-align:start;
+    }
+
+    .note i{
+      color:#63b3ed;
+      margin-inline-end:8px;
+    }
+
+    .actions{
+      display:flex;
+      gap:12px;
+      justify-content:center;
+      margin-top:28px;
+      flex-wrap: wrap;
+    }
+
+    .btn{
+      padding:14px 28px;
+      border-radius:14px;
+      cursor:pointer;
+      font-weight:900;
+      border:none;
+      transition:0.25s;
+      font-family:inherit;
+      font-size:1rem;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      text-decoration:none;
+    }
+
+    .btn-primary{
+      background: linear-gradient(45deg,var(--primary-dark),var(--primary-mid));
+      color:white;
+    }
+
+    .btn-primary:hover{
+      filter:brightness(1.15);
+      transform:translateY(-2px);
+    }
+
+    .btn-ghost{
+      background: rgba(0,0,0,0.2);
+      color:var(--accent-glow);
+      border:1px solid rgba(255,255,255,0.1);
+    }
+
+    .btn-ghost:hover{
+      background:rgba(95,191,122,0.12);
+      transform:translateY(-2px);
+    }
+
+    .request-id{
+      display:inline-block;
+      background: rgba(95,191,122,0.1);
+      border: 1px solid rgba(95,191,122,0.25);
+      padding:8px 16px;
+      border-radius:8px;
+      font-family: ui-monospace, monospace;
+      font-size:0.9rem;
+      color:var(--accent-glow);
+      margin-top:12px;
+      word-break: break-word;
+    }
+
+    @media (max-width: 700px){
+      body{
+        padding: 14px;
+      }
+
+      .card{
+        padding: 28px 18px;
+      }
+
+      .main-container{
+        min-height: auto;
+        padding: 20px 0 40px;
+      }
+
+      .ww-title span{
+        font-size: 0.78rem;
+      }
+
+      h1{
+        font-size: 1.6rem;
+      }
+
+      .subtitle{
+        font-size: 0.95rem;
+      }
+
+      .actions{
+        flex-direction: column;
+      }
+
+      .btn{
+        width: 100%;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="animated-bg-logo">
+    <img src="logo.png" alt="">
+  </div>
+
+  <div class="page-container">
+
+    <header class="ww-topbar">
+      <div class="ww-left">
+        <a href="auth.html" class="ww-icon-btn" title="Back">
+          <i class="fa-solid fa-arrow-left" id="backIcon"></i>
+        </a>
+
+        <div class="ww-brand">
+          <img src="logo.png" class="ww-logo" alt="Whisper-WA Logo" />
+          <div class="ww-title">
+            <b>Whisper-WA</b>
+            <span id="top-subtitle">منصة التحليل الجنائي الرقمي</span>
+          </div>
+        </div>
+      </div>
+
+      <button class="ww-lang-btn" id="btnLang" type="button">
+        <span id="langText">EN</span>
+      </button>
+    </header>
+
+    <div class="main-container">
+      <section class="card">
+
+        <div class="icon-container">
+          <i class="fa-solid fa-hourglass-half"></i>
+        </div>
+
+        <h1 id="txt-title">تم إرسال الطلب</h1>
+        <p class="subtitle" id="txt-subtitle">تم إرسال طلب حسابك بنجاح وهو الآن في انتظار موافقة المسؤول.</p>
+
+        <div class="info-box">
+          <h3>
+            <i class="fa-solid fa-list-check"></i>
+            <span id="txt-next">ماذا يحدث بعد ذلك؟</span>
+          </h3>
+
+          <ul class="info-list">
+            <li><i class="fa-solid fa-envelope-circle-check"></i><span id="txt-step1">ستتلقى إشعارًا بالبريد الإلكتروني بمجرد مراجعة طلبك.</span></li>
+            <li><i class="fa-solid fa-user-check"></i><span id="txt-step2">في حالة الموافقة، ستحصل على بيانات الدخول للوصول إلى المنصة.</span></li>
+            <li><i class="fa-solid fa-circle-info"></i><span id="txt-step3">إذا كانت هناك حاجة لمعلومات إضافية، سيتواصل معك فريق المسؤولين مباشرة.</span></li>
+            <li><i class="fa-solid fa-clock"></i><span id="txt-step4">تستغرق المراجعة عادةً 1-2 يوم عمل حسب متطلبات التحقق.</span></li>
+          </ul>
+        </div>
+
+        <div class="note">
+          <i class="fa-solid fa-shield-halved"></i>
+          <strong id="txt-notice-label">تنبيه أمني:</strong>
+          <span id="txt-notice-text">هذه المنصة مقصورة على الأفراد المخولين فقط. تتم مراجعة جميع طلبات الوصول بعناية للحفاظ على معايير الأمان والامتثال.</span>
+        </div>
+
+        <div class="request-id">
+          <span id="txt-req-label">رقم الطلب:</span>
+          <strong id="requestId">REQ-000000</strong>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-primary" id="btnHome">
+            <i class="fa-solid fa-home"></i>
+            <span id="txt-btn-home">الرئيسية</span>
+          </button>
+
+          <button class="btn btn-ghost" id="btnLogin">
+            <i class="fa-solid fa-right-to-bracket"></i>
+            <span id="txt-btn-login">تسجيل الدخول</span>
+          </button>
+        </div>
+
+      </section>
+    </div>
+  </div>
+
+  <script>
+    let currentLang = localStorage.getItem("lang") || "ar";
+
+    const UI = {
+      ar: {
+        title: "Whisper-WA | الطلب قيد المراجعة",
+        subtitle: "منصة التحليل الجنائي الرقمي",
+        langText: "EN",
+        txtTitle: "تم إرسال الطلب",
+        txtSubtitle: "تم إرسال طلب حسابك بنجاح وهو الآن في انتظار موافقة المسؤول.",
+        txtNext: "ماذا يحدث بعد ذلك؟",
+        txtStep1: "ستتلقى إشعارًا بالبريد الإلكتروني بمجرد مراجعة طلبك.",
+        txtStep2: "في حالة الموافقة، ستحصل على بيانات الدخول للوصول إلى المنصة.",
+        txtStep3: "إذا كانت هناك حاجة لمعلومات إضافية، سيتواصل معك فريق المسؤولين مباشرة.",
+        txtStep4: "تستغرق المراجعة عادةً 1-2 يوم عمل حسب متطلبات التحقق.",
+        txtNoticeLabel: "تنبيه أمني:",
+        txtNoticeText: "هذه المنصة مقصورة على الأفراد المخولين فقط. تتم مراجعة جميع طلبات الوصول بعناية للحفاظ على معايير الأمان والامتثال.",
+        txtReqLabel: "رقم الطلب:",
+        txtBtnHome: "الرئيسية",
+        txtBtnLogin: "تسجيل الدخول"
+      },
+      en: {
+        title: "Whisper-WA | Request Pending",
+        subtitle: "Digital Forensics Platform",
+        langText: "AR",
+        txtTitle: "Request Submitted",
+        txtSubtitle: "Your account request has been successfully submitted and is now pending admin approval.",
+        txtNext: "What happens next?",
+        txtStep1: "You will receive an email notification once your request has been reviewed.",
+        txtStep2: "If approved, you'll get login credentials to access the platform.",
+        txtStep3: "If additional information is needed, the admin team will contact you directly.",
+        txtStep4: "Review typically takes 1-2 business days depending on verification requirements.",
+        txtNoticeLabel: "Security Notice:",
+        txtNoticeText: "This platform is restricted to authorized personnel only. All access requests are carefully reviewed to maintain security and compliance standards.",
+        txtReqLabel: "Request ID:",
+        txtBtnHome: "Back to Home",
+        txtBtnLogin: "Login"
+      }
+    };
+
+    function applyLang(lang){
+      currentLang = lang;
+      const t = UI[lang];
+
+      document.documentElement.lang = lang;
+      document.documentElement.dir = (lang === "ar") ? "rtl" : "ltr";
+      document.title = t.title;
+      localStorage.setItem("lang", lang);
+
+      const backIcon = document.getElementById("backIcon");
+      if (backIcon) {
+        backIcon.className = lang === "ar"
+          ? "fa-solid fa-arrow-left"
+          : "fa-solid fa-arrow-right";
+      }
+
+      document.getElementById("top-subtitle").textContent    = t.subtitle;
+      document.getElementById("langText").textContent         = t.langText;
+      document.getElementById("txt-title").textContent        = t.txtTitle;
+      document.getElementById("txt-subtitle").textContent     = t.txtSubtitle;
+      document.getElementById("txt-next").textContent         = t.txtNext;
+      document.getElementById("txt-step1").textContent        = t.txtStep1;
+      document.getElementById("txt-step2").textContent        = t.txtStep2;
+      document.getElementById("txt-step3").textContent        = t.txtStep3;
+      document.getElementById("txt-step4").textContent        = t.txtStep4;
+      document.getElementById("txt-notice-label").textContent = t.txtNoticeLabel;
+      document.getElementById("txt-notice-text").textContent  = t.txtNoticeText;
+      document.getElementById("txt-req-label").textContent    = t.txtReqLabel;
+      document.getElementById("txt-btn-home").textContent     = t.txtBtnHome;
+      document.getElementById("txt-btn-login").textContent    = t.txtBtnLogin;
+    }
+
+    function loadRequestId(){
+      try {
+        const lastId = localStorage.getItem("lastRequestId");
+
+        if(lastId && lastId !== "undefined" && lastId !== "null"){
+          document.getElementById("requestId").textContent =
+            `REQ-${String(lastId).slice(-6).padStart(6,'0')}`;
+          return;
+        }
+
+        document.getElementById("requestId").textContent = "REQ-PENDING";
+      } catch(e){
+        console.error("Error loading request ID:", e);
+        document.getElementById("requestId").textContent = "REQ-PENDING";
+      }
+    }
+
+    document.getElementById("btnHome").onclick = () => {
+      window.location.href = "index.html";
+    };
+
+    document.getElementById("btnLogin").onclick = () => {
+      window.location.href = "auth.html";
+    };
+
+    document.getElementById("btnLang").onclick = () => {
+      applyLang(currentLang === "ar" ? "en" : "ar");
+    };
+
+    window.addEventListener("DOMContentLoaded", () => {
+      loadRequestId();
+      applyLang(currentLang);
+    });
+  </script>
+</body>
+</html>
