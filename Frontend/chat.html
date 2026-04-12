@@ -694,10 +694,12 @@
       setText("txt-export", isAr ? "تنزيل التقرير" : "Download Report");
       setText("txt-analysis", isAr ? "تحليل" : "Analysis");
       setText("txt-view", isAr ? "عرض التقرير" : "View Report");
+      setText("txt-add-btn", isAr ? "إضافة للتقرير الحالي" : "Add to Current Report");
       setText("th-msg", isAr ? "الرسالة" : "Message");
       setText("th-type", isAr ? "النوع" : "Type");
       setText("th-num", isAr ? "الرقم" : "Number");
       setText("th-time", isAr ? "التاريخ والوقت" : "Date & Time");
+      
 
       if (searchInput){
         searchInput.placeholder = isAr
@@ -1412,6 +1414,16 @@
 
         const saved = localStorage.getItem("lang") || "ar";
         applyLang(saved);
+        const btnLang = document.getElementById("btnLang");
+
+if (btnLang) {
+  btnLang.onclick = () => {
+    const newLang = localStorage.getItem("lang") === "ar" ? "en" : "ar";
+    localStorage.setItem("lang", newLang);
+
+    applyLang(newLang); // 👈 هذا أهم شي
+  };
+}
 
         await loadCasesFromBackend();
 
