@@ -316,12 +316,12 @@ textarea{
       <div class="row">
         <div>
           <label id="lbl-name">الاسم الكامل <span class="required">*</span></label>
-          <input id="reqName">
+          <input id="reqName" type="text">
         </div>
 
         <div>
           <label id="lbl-req-email">البريد الإلكتروني <span class="required">*</span></label>
-          <input id="reqEmail" type="email">
+          <input id="reqEmail" type="email" placeholder="example@email.com">
         </div>
       </div>
 
@@ -347,13 +347,21 @@ textarea{
       <div class="row">
         <div>
           <label id="lbl-job">المسمى الوظيفي</label>
-          <input id="reqJob">
+          <select id="reqJob">
+            <option value="">-- اختر --</option>
+            <option value="Digital Forensics Analyst">Digital Forensics Analyst</option>
+            <option value="SOC Analyst">SOC Analyst</option>
+            <option value="Cybersecurity Specialist">Cybersecurity Specialist</option>
+            <option value="Investigator">Investigator</option>
+            <option value="Incident Responder">Incident Responder</option>
+            <option value="Threat Analyst">Threat Analyst</option>
+            <option value="Compliance Officer">Compliance Officer</option>
+            <option value="Legal Advisor">Legal Advisor</option>
+            <option value="Other">Other</option>
+          </select>
         </div>
         <div></div>
       </div>
-
-      <label id="lbl-reason">سبب طلب الوصول <span class="required">*</span></label>
-      <textarea id="reqReason"></textarea>
 
       <div class="actions">
         <button class="btn btn-primary" id="btnSubmitRequest" type="button">إرسال الطلب</button>
@@ -387,13 +395,18 @@ const translations = {
     lblDept: "القسم",
     lblJob: "المسمى الوظيفي",
     deptOpts: ["-- اختر --", "الأدلة الجنائية الرقمية", "التحقيقات", "الأمن السيبراني", "القانوني والامتثال", "أخرى"],
-    lblReason: "سبب طلب الوصول <span class='required'>*</span>",
+    jobOpts: ["-- اختر --", "Digital Forensics Analyst", "SOC Analyst", "Cybersecurity Specialist", "Investigator", "Incident Responder", "Threat Analyst", "Compliance Officer", "Legal Advisor", "Other"],
     btnSubmitRequest: "إرسال الطلب",
     btnClearRequest: "مسح النموذج",
     alertEmptyLogin: "الرجاء إدخال البريد وكلمة المرور",
+    alertInvalidLoginEmail: "الرجاء إدخال بريد إلكتروني صحيح",
     alertLoginSuccess: "تم تسجيل الدخول",
     alertLoginFail: "بيانات غير صحيحة",
     alertEmptyReq: "الرجاء تعبئة الحقول المطلوبة",
+    alertInvalidEmail: "الرجاء إدخال بريد إلكتروني صحيح ويحتوي على @",
+    alertWeakPassword: "كلمة المرور يجب أن تكون 8 أحرف أو أكثر وتحتوي على حرف كبير وحرف صغير ورقم ورمز",
+    alertInvalidName: "الاسم يجب أن يحتوي على أحرف فقط",
+    alertInvalidJob: "الرجاء اختيار المسمى الوظيفي",
     alertConnection: "تعذر الاتصال بالسيرفر"
   },
   en: {
@@ -413,13 +426,18 @@ const translations = {
     lblDept: "Department",
     lblJob: "Job Title",
     deptOpts: ["-- Select --", "Digital Forensics", "Investigations", "Cybersecurity", "Legal & Compliance", "Other"],
-    lblReason: "Reason for Access <span class='required'>*</span>",
+    jobOpts: ["-- Select --", "Digital Forensics Analyst", "SOC Analyst", "Cybersecurity Specialist", "Investigator", "Incident Responder", "Threat Analyst", "Compliance Officer", "Legal Advisor", "Other"],
     btnSubmitRequest: "Submit Request",
     btnClearRequest: "Clear Form",
     alertEmptyLogin: "Please enter email and password",
+    alertInvalidLoginEmail: "Please enter a valid email address",
     alertLoginSuccess: "Login Successful",
     alertLoginFail: "Invalid Credentials",
     alertEmptyReq: "Please fill all required fields",
+    alertInvalidEmail: "Please enter a valid email address with @",
+    alertWeakPassword: "Password must be at least 8 characters and include uppercase, lowercase, number, and symbol",
+    alertInvalidName: "Name must contain letters only",
+    alertInvalidJob: "Please select a job title",
     alertConnection: "Unable to connect to the server"
   }
 };
@@ -453,7 +471,6 @@ function updateLanguage() {
   document.getElementById("lbl-code").innerHTML = t.lblCode;
   document.getElementById("lbl-dept").innerText = t.lblDept;
   document.getElementById("lbl-job").innerText = t.lblJob;
-  document.getElementById("lbl-reason").innerHTML = t.lblReason;
   document.getElementById("btnSubmitRequest").innerText = t.btnSubmitRequest;
   document.getElementById("btnClearRequest").innerText = t.btnClearRequest;
 
@@ -461,6 +478,13 @@ function updateLanguage() {
   for (let i = 0; i < deptSelect.options.length; i++) {
     if (t.deptOpts[i]) {
       deptSelect.options[i].innerText = t.deptOpts[i];
+    }
+  }
+
+  const jobSelect = document.getElementById("reqJob");
+  for (let i = 0; i < jobSelect.options.length; i++) {
+    if (t.jobOpts[i]) {
+      jobSelect.options[i].innerText = t.jobOpts[i];
     }
   }
 
@@ -489,6 +513,18 @@ function showAlert(type, msg){
   box.classList.remove("hidden");
 }
 
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function isStrongPassword(password) {
+  return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{8,}$/.test(password);
+}
+
+function isTextOnly(value) {
+  return /^[A-Za-z\u0600-\u06FF\s]+$/.test(value);
+}
+
 document.getElementById("btnLogin").onclick = async () => {
   const user = document.getElementById("loginUser").value.trim();
   const pass = document.getElementById("loginPass").value.trim();
@@ -496,6 +532,11 @@ document.getElementById("btnLogin").onclick = async () => {
 
   if(!user || !pass){
     showAlert("danger", t.alertEmptyLogin);
+    return;
+  }
+
+  if(!isValidEmail(user)){
+    showAlert("danger", t.alertInvalidLoginEmail);
     return;
   }
 
@@ -522,7 +563,6 @@ document.getElementById("btnLogin").onclick = async () => {
 
       showAlert("success", t.alertLoginSuccess);
 
-      // ✅ الأدمن والمستخدم يروحون كلهم للكونكتد
       window.location.assign("./connect.html");
       return;
     } else {
@@ -540,12 +580,31 @@ document.getElementById("btnSubmitRequest").onclick = async () => {
   const code = document.getElementById("reqCode").value.trim();
   const dept = document.getElementById("reqDept").value;
   const job = document.getElementById("reqJob").value.trim();
-  const reason = document.getElementById("reqReason").value.trim();
   const t = translations[currentLang];
   const submitBtn = document.getElementById("btnSubmitRequest");
 
-  if(!name || !email || !code || !reason){
+  if(!name || !email || !code){
     showAlert("danger", t.alertEmptyReq);
+    return;
+  }
+
+  if(!isTextOnly(name)){
+    showAlert("danger", t.alertInvalidName);
+    return;
+  }
+
+  if(!isValidEmail(email) || !email.includes("@")){
+    showAlert("danger", t.alertInvalidEmail);
+    return;
+  }
+
+  if(!isStrongPassword(code)){
+    showAlert("danger", t.alertWeakPassword);
+    return;
+  }
+
+  if(!job){
+    showAlert("danger", t.alertInvalidJob);
     return;
   }
 
@@ -563,8 +622,7 @@ document.getElementById("btnSubmitRequest").onclick = async () => {
         email: email,
         password: code,
         job_title: job,
-        department: dept,
-        reason: reason
+        department: dept
       })
     });
 
@@ -591,7 +649,7 @@ document.getElementById("btnSubmitRequest").onclick = async () => {
 };
 
 document.getElementById("btnClearRequest").onclick = () => {
-  ["reqName","reqEmail","reqCode","reqDept","reqJob","reqReason"].forEach(id => {
+  ["reqName","reqEmail","reqCode","reqDept","reqJob"].forEach(id => {
     document.getElementById(id).value = "";
   });
   document.getElementById("alertBox").classList.add("hidden");
