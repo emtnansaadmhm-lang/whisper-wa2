@@ -66,10 +66,10 @@ def register_request():
     department = (body.get("department") or "").strip()
     reason = (body.get("reason") or "").strip()
 
-    if not name or not email or not password or not reason:
+    if not name or not email or not password:
         return jsonify({
             "success": False,
-            "message": "Name, email, password, and reason are required"
+            "message": "Name, email, password are required"
         }), 400
 
     existing_user = User.query.filter_by(email=email).first()
