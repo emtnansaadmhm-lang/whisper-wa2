@@ -425,18 +425,18 @@
       const cases = await fetchCases();
 
       if(!cases.length){
-        showAlert("danger", "No extracted chats found yet.");
+        showAlert("danger", getText("noExtractedChats"));
         return;
       }
 
       const latestCase = cases.sort((a, b) =>
-  new Date(b.created_at) - new Date(a.created_at)
-)[0];
+        new Date(b.created_at) - new Date(a.created_at)
+      )[0];
 
-const latestCaseId = latestCase.case_id;
+      const latestCaseId = latestCase.case_id;
       openChat(latestCaseId);
     }catch(e){
-      showAlert("danger", `Error: ${e.message}`);
+      showAlert("danger", `${getText("errorPrefix")} ${e.message}`);
     }
   }
 
@@ -460,14 +460,14 @@ const latestCaseId = latestCase.case_id;
       if(!cases.length){
         caseList.innerHTML = `
           <div class="empty-state">
-            No old cases found yet.
+            ${getText("noOldCases")}
           </div>
         `;
         return;
       }
 
       caseList.innerHTML = cases.map(c => {
-       const createdAt = c.created_at_text || "No date";
+        const createdAt = c.created_at_text || getText("noDate");
         return `
           <button class="case-item" type="button" data-case-id="${c.case_id}">
             <div class="case-id">${c.case_id}</div>
@@ -484,7 +484,7 @@ const latestCaseId = latestCase.case_id;
       });
 
     }catch(e){
-      showAlert("danger", `Error: ${e.message}`);
+      showAlert("danger", `${getText("errorPrefix")} ${e.message}`);
     }
   }
 
@@ -512,10 +512,104 @@ const latestCaseId = latestCase.case_id;
     });
   });
 
+  function getCurrentLang(){
+    return localStorage.getItem("lang") || "en";
+  }
+
+  function getText(key){
+    const lang = getCurrentLang();
+    const texts = {
+      en: {
+        title: "Whisper-WA | Connect",
+        heading: "Connect Device",
+        subtitle: "Select a connection method, then click Connect",
+        wifiTab: "Wi-Fi (IP:PORT)",
+        usbTab: "USB",
+        wifiLabel: "Device IP:PORT",
+        wifiPlaceholder: "e.g. 192.168.56.101:5555",
+        wifiNote: "Enter IP:PORT then press Connect.",
+        usbNote: `1) Connect device using USB cable.<br>
+2) Enable <b>USB Debugging</b>.<br>
+3) Press <b>Connect</b>.`,
+        connect: "Connect",
+        extract: "View Extract Chat",
+        oldCases: "Open Old Cases",
+        modalTitle: "Old Cases",
+        noOldCases: "No old cases found yet.",
+        noExtractedChats: "No extracted chats found yet.",
+        enterIp: "Please enter IP:PORT",
+        noDate: "No date",
+        errorPrefix: "Error:"
+      },
+      ar: {
+        title: "Whisper-WA | الاتصال",
+        heading: "ربط الجهاز",
+        subtitle: "اختر طريقة الاتصال ثم اضغط اتصال",
+        wifiTab: "واي فاي (IP:PORT)",
+        usbTab: "USB",
+        wifiLabel: "IP الجهاز:PORT",
+        wifiPlaceholder: "مثال: 192.168.56.101:5555",
+        wifiNote: "أدخل IP:PORT ثم اضغط اتصال.",
+        usbNote: `1) صِل الجهاز باستخدام سلك USB.<br>
+2) فعّل <b>USB Debugging</b>.<br>
+3) اضغط <b>اتصال</b>.`,
+        connect: "اتصال",
+        extract: "عرض المحادثات",
+        oldCases: "فتح القضايا السابقة",
+        modalTitle: "القضايا السابقة",
+        noOldCases: "لا توجد قضايا سابقة حتى الآن.",
+        noExtractedChats: "لا توجد محادثات مستخرجة حتى الآن.",
+        enterIp: "الرجاء إدخال IP:PORT",
+        noDate: "لا يوجد تاريخ",
+        errorPrefix: "خطأ:"
+      }
+    };
+
+    return texts[lang][key] || texts.en[key] || "";
+  }
+
+  function applyLang(lang){
+    const isAr = lang === "ar";
+
+    document.documentElement.lang = isAr ? "ar" : "en";
+    document.documentElement.dir = isAr ? "rtl" : "ltr";
+
+    document.title = getText("title");
+
+    document.querySelector(".card h1").textContent = getText("heading");
+    document.querySelector(".subtitle").textContent = getText("subtitle");
+
+    document.getElementById("tabWifi").textContent = getText("wifiTab");
+    document.getElementById("tabUsb").textContent = getText("usbTab");
+
+    document.querySelector("#wifiForm label").textContent = getText("wifiLabel");
+    document.getElementById("ipInput").placeholder = getText("wifiPlaceholder");
+
+    document.querySelector("#wifiTab .note").textContent = getText("wifiNote");
+    document.querySelector("#usbTab .note").innerHTML = getText("usbNote");
+
+    document.getElementById("btnWifiConnect").textContent = getText("connect");
+    document.getElementById("btnWifiExtract").textContent = getText("extract");
+    document.getElementById("btnWifiOldCases").textContent = getText("oldCases");
+
+    document.getElementById("btnUsbConnect").textContent = getText("connect");
+    document.getElementById("btnUsbExtract").textContent = getText("extract");
+    document.getElementById("btnUsbOldCases").textContent = getText("oldCases");
+
+    const modalTitle = document.querySelector(".modal-title");
+    if (modalTitle) {
+      modalTitle.textContent = getText("modalTitle");
+    }
+  }
+
+  window.applyLang = applyLang;
+
   window.addEventListener("DOMContentLoaded", async () => {
     const frontendBase = window.location.href.replace(/\/[^\/?#]+(\?.*)?$/, "");
     wifiFrontendBase.value = frontendBase;
     usbFrontendBase.value = frontendBase;
+
+    applyLang(getCurrentLang());
 
     wifiForm.addEventListener("submit", (e) => {
       hideAlert();
@@ -523,7 +617,7 @@ const latestCaseId = latestCase.case_id;
 
       if(!ip){
         e.preventDefault();
-        showAlert("danger", "Please enter IP:PORT");
+        showAlert("danger", getText("enterIp"));
         return;
       }
 
@@ -551,6 +645,20 @@ const latestCaseId = latestCase.case_id;
         else s.textContent = old.textContent;
         document.body.appendChild(s);
       });
+
+      setTimeout(() => {
+        applyLang(getCurrentLang());
+
+        const btnLang = document.getElementById("btnLang");
+        if(btnLang){
+          btnLang.addEventListener("click", () => {
+            setTimeout(() => {
+              applyLang(getCurrentLang());
+            }, 0);
+          });
+        }
+      }, 0);
+
     }catch(e){
       console.error("HEADER LOAD ERROR:", e);
     }
