@@ -569,7 +569,7 @@
             <div class="case-banner-left">
               <i class="fa-solid fa-folder-open"></i>
               <div>
-                <div class="case-title" id="caseTitle">الكيس الحالية: -</div>
+                <div class="case-title" id="caseTitle">القضيةالحالية: -</div>
                 <div class="case-subtitle" id="caseSubtitle">بانتظار تحميل المحادثات</div>
               </div>
             </div>
@@ -633,10 +633,6 @@
     const caseTitle = document.getElementById("caseTitle");
     const caseSubtitle = document.getElementById("caseSubtitle");
 
-    function updateCaseBanner(title, subtitle = "") {
-      caseTitle.textContent = title || "الكيس الحالية: -";
-      caseSubtitle.textContent = subtitle || "";
-    }
 
     function initHeaderForPage(pageName){
       const backBtn = document.getElementById("btnBack");
@@ -691,15 +687,31 @@
       if (langText) langText.textContent = isAr ? "AR" : "EN";
 
       document.title = isAr ? "Whisper-WA | بناء التقرير" : "Whisper-WA | Report Builder";
+      
+      // إصلاح بقة "مسودة التقرير" - استخدام innerHTML للحفاظ على الأيقونة
+      const draftTitle = document.getElementById("txt-draft-title");
+      if (draftTitle) {
+        draftTitle.innerHTML = isAr 
+          ? '<i class="fa-solid fa-file-contract"></i> مسودة التقرير' 
+          : '<i class="fa-solid fa-file-contract"></i> Report Draft';
+      }
+
       setText("txt-export", isAr ? "تنزيل التقرير" : "Download Report");
       setText("txt-analysis", isAr ? "تحليل" : "Analysis");
       setText("txt-view", isAr ? "عرض التقرير" : "View Report");
-      setText("txt-add-btn", isAr ? "إضافة للتقرير الحالي" : "Add to Current Report");
+      
+      // ترجمة زر الإضافة مع الأيقونة الخاصة به
+      const addBtn = document.getElementById("txt-add-btn");
+      if (addBtn) {
+        addBtn.innerHTML = isAr 
+          ? '<i class="fa-solid fa-plus-circle"></i> إضافة للتقرير الحالي' 
+          : '<i class="fa-solid fa-plus-circle"></i> Add to Current Report';
+      }
+
       setText("th-msg", isAr ? "الرسالة" : "Message");
       setText("th-type", isAr ? "النوع" : "Type");
       setText("th-num", isAr ? "الرقم" : "Number");
       setText("th-time", isAr ? "التاريخ والوقت" : "Date & Time");
-      
 
       if (searchInput){
         searchInput.placeholder = isAr
@@ -709,9 +721,15 @@
 
       if (!selectedCaseId) {
         updateCaseBanner(
-          isAr ? "الكيس الحالية: -" : "Current Case: -",
+          isAr ? "القضيةالحالية: -" : "Current Case: -",
           isAr ? "بانتظار تحميل المحادثات" : "Waiting to load chats"
-        );
+        )
+      } else {
+        
+        const bannerTitle = document.getElementById("caseTitle");
+        if (bannerTitle) {
+          bannerTitle.textContent = isAr ? `القضيةالحالية: ${selectedCaseId}` : `Current Case: ${selectedCaseId}`;
+        }
       }
     }
 
@@ -909,6 +927,10 @@
       return true;
     }
 
+    function updateCaseBanner(title, subtitle = "") {
+      caseTitle.textContent = title || "القضيةالحالية: -";
+      caseSubtitle.textContent = subtitle || "";
+    }
     function chatMatchesQuery(chat, q) {
       const query = String(q || "").trim();
       if (!query) return true;
@@ -1122,10 +1144,10 @@
         localStorage.setItem("case_id", selectedCaseId);
         localStorage.setItem("CURRENT_CASE_ID", selectedCaseId);
 
-        updateCaseBanner(`الكيس الحالية: ${selectedCaseId}`, `عدد الكيسات المحفوظة: ${casesData.length}`);
+        updateCaseBanner(`القضية الحالية: ${selectedCaseId}`, `عدد القضايا المحفوظة: ${casesData.length}`);
       } catch (e) {
         console.error("Cases API error:", e);
-        updateCaseBanner("الكيس الحالية: -", "تعذر الاتصال بالباك لتحميل الكيسات");
+        updateCaseBanner("القضية الحالية: -", "تعذر الاتصال بالباك لتحميل القضية");
       }
     }
 
@@ -1135,19 +1157,19 @@
         chatListContainer.innerHTML = `
           <div class="chat-item active">
             <div class="chat-info">
-              <h4>لا توجد كيس محددة</h4>
-              <p>ارجعي لصفحة الاتصال أو افتحي آخر كيس</p>
+              <h4>لا توجد قضية محددة</h4>
+              <p>ارجعي لصفحة الاتصال أو افتحي آخر قضية </p>
             </div>
           </div>
         `;
-        messageView.innerHTML = `<div class="empty-state">لا توجد كيس محددة للعرض</div>`;
+        messageView.innerHTML = `<div class="empty-state">لا توجد قضية محددة للعرض</div>`;
         return;
       }
 
       localStorage.setItem("case_id", caseId);
       localStorage.setItem("CURRENT_CASE_ID", caseId);
 
-      updateCaseBanner(`الكيس الحالية: ${caseId}`, "جاري تحميل المحادثات...");
+      updateCaseBanner(`القضية الحالية: ${caseId}`, "جاري تحميل المحادثات...");
 
       try {
         const res = await fetch(`${API_BASE}/api/messages/${caseId}`);
@@ -1180,7 +1202,7 @@
         if (chatsData.length) {
           updateCaseBanner(`الكيس الحالية: ${caseId}`, `تم تحميل ${chatsData.length} محادثة`);
         } else {
-          updateCaseBanner(`الكيس الحالية: ${caseId}`, "تم تحميل الكيس لكن لا توجد محادثات للعرض");
+          updateCaseBanner(`الكيس الحالية: ${caseId}`, "تم تحميل القضية لكن لا توجد محادثات للعرض");
         }
       } catch (e) {
         console.error("Backend error:", e);
@@ -1195,7 +1217,7 @@
         messageView.innerHTML = `<div class="empty-state">تعذر الاتصال بالباك لتحميل المحادثات</div>`;
         suggestionPool = [];
         hideSuggestions();
-        updateCaseBanner(`الكيس الحالية: ${caseId}`, "خطأ اتصال مع الباك");
+        updateCaseBanner(`القضية الحالية: ${caseId}`, "خطأ اتصال مع الباك");
       }
     }
 
@@ -1269,7 +1291,7 @@
       const rows = collectReportRows();
 
       if (!rows.length) {
-        alert("أضيفي الرسائل للتقرير أولًا");
+        alert("أضف الرسائل للتقرير أولًا");
         return;
       }
 
@@ -1326,7 +1348,7 @@
       const lang = document.documentElement.lang || "ar";
       const choice = prompt(
         lang === "ar"
-          ? "اكتبي نوع الملف: pdf أو csv"
+          ? "اكتب نوع الملف: pdf أو csv"
           : "Enter export format: pdf or csv",
         "pdf"
       );
@@ -1430,7 +1452,7 @@ if (btnLang) {
         if (selectedCaseId) {
           await loadChatsForCase(selectedCaseId);
         } else {
-          updateCaseBanner("الكيس الحالية: -", "لا توجد كيس محددة حاليًا");
+          updateCaseBanner("القضية الحالية: -", "لا توجد قضية محددة حاليًا");
         }
       } catch (e) {
         console.error("Header load error:", e);
@@ -1440,7 +1462,7 @@ if (btnLang) {
         if (selectedCaseId) {
           await loadChatsForCase(selectedCaseId);
         } else {
-          updateCaseBanner("الكيس الحالية: -", "لا توجد كيس محددة حاليًا");
+          updateCaseBanner("الكيس الحالية: -", "لا توجد قضية محددة حاليًا");
         }
       }
     });
