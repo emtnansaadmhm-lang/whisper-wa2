@@ -1024,7 +1024,7 @@
         item.innerHTML = `
           <input type="checkbox" checked>
           <div class="chat-info">
-            <h4>${escapeHtml(chat.name || chat.number || "Unknown")}</h4>
+           <h4>${escapeHtml(chat.number || chat.name || "Unknown")}</h4>
             <p>${escapeHtml(chat.last_message || "")}</p>
           </div>
           <span class="time">${escapeHtml(chat.last_time || "")}</span>
