@@ -33,7 +33,27 @@ def pick_first_existing(tables, candidates):
             return c
     return None
 
+def clean_number(value):
+    if value is None:
+        return "Unknown"
 
+    value = str(value).strip()
+
+    if value == "status@broadcast":
+        return "Status"
+
+    if "@s.whatsapp.net" in value:
+        return value.split("@")[0]
+
+    if "@g.us" in value:
+        return value.split("@")[0]
+
+    import re
+    match = re.search(r"\d{8,15}", value)
+    if match:
+        return match.group(0)
+
+    return value
 @messages_api.route("/api/messages/<case_id>", methods=["GET"])
 def get_messages(case_id):
     db_path = get_db_path(case_id)
@@ -187,7 +207,7 @@ def get_messages(case_id):
             if chat_ref not in chats_map:
                 chats_map[chat_ref] = {
                     "id": chat_ref,
-                    "number": chat_ref,
+                    "number": clean_number(chat_name),
                     "name": chat_name,
                     "last_message": text,
                     "last_time": display_time,
