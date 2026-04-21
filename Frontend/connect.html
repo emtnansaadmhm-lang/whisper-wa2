@@ -408,8 +408,13 @@
   }
 
   async function fetchCases(){
-    const res = await fetch(`${API_BASE}/api/cases`);
-    const data = await res.json();
+const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
+const userId = currentUser.id || "";
+const role = currentUser.role || "user";
+
+const res = await fetch(
+  `${API_BASE}/api/cases?user_id=${encodeURIComponent(userId)}&role=${encodeURIComponent(role)}`
+);    const data = await res.json();
 
     if(!res.ok || !data.ok){
       throw new Error("Failed to load cases.");
@@ -611,21 +616,45 @@
 
     applyLang(getCurrentLang());
 
-    wifiForm.addEventListener("submit", (e) => {
-      hideAlert();
-      let ip = ipInput.value.trim();
+wifiForm.addEventListener("submit", (e) => {
+  hideAlert();
+  let ip = ipInput.value.trim();
 
-      if(!ip){
-        e.preventDefault();
-        showAlert("danger", getText("enterIp"));
-        return;
-      }
+  if(!ip){
+    e.preventDefault();
+    showAlert("danger", getText("enterIp"));
+    return;
+  }
 
-      if(!ip.includes(":")){
-        ipInput.value = `${ip}:5555`;
-      }
-    });
+  if(!ip.includes(":")){
+    ipInput.value = `${ip}:5555`;
+  }
 
+  const user = JSON.parse(localStorage.getItem("currentUser") || "{}");
+
+  let uid = document.getElementById("hidden_user_id");
+  if(!uid){
+    uid = document.createElement("input");
+    uid.type = "hidden";
+    uid.name = "user_id";
+    uid.id = "hidden_user_id";
+    wifiForm.appendChild(uid);
+  }
+  uid.value = user.id || "";
+});
+usbForm.addEventListener("submit", () => {
+  const user = JSON.parse(localStorage.getItem("currentUser") || "{}");
+
+  let uid = document.getElementById("hidden_user_id_usb");
+  if(!uid){
+    uid = document.createElement("input");
+    uid.type = "hidden";
+    uid.name = "user_id";
+    uid.id = "hidden_user_id_usb";
+    usbForm.appendChild(uid);
+  }
+  uid.value = user.id || "";
+});
     try{
       const res = await fetch("header.html");
       const headerHtml = await res.text();
