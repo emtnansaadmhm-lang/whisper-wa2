@@ -88,3 +88,13 @@ class Case(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     case_name = db.Column(db.String(150), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class CaseInvestigator(db.Model):
+    __tablename__ = "case_investigators"
+
+    id = db.Column(db.Integer, primary_key=True)
+    case_name = db.Column(db.String(150), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    is_owner = db.Column(db.Boolean, default=False)
+    added_at = db.Column(db.DateTime, default=datetime.utcnow)
