@@ -422,4 +422,26 @@
     }
   }, 5000);
 })();
+
+  function applyLanguage() {
+    const lang = localStorage.getItem("lang") || "ar";
+    const isAr = lang === "ar";
+    
+    // ترجمة عناصر الهيدر الثابتة
+    const t = {
+        ar: { dashboard: "لوحة التحكم", reports: "التقارير", logout: "تسجيل الخروج" },
+        en: { dashboard: "Dashboard", reports: "Reports", logout: "Logout" }
+    };
+
+    const menuAdmin = document.getElementById("menuAdminText");
+    const menuReports = document.getElementById("menuReportsText");
+    const menuLogout = document.getElementById("menuLogoutText");
+
+    if(menuAdmin) menuAdmin.innerText = t[lang].dashboard;
+    if(menuReports) menuReports.innerText = t[lang].reports;
+    if(menuLogout) menuLogout.innerText = t[lang].logout;
+
+    document.documentElement.dir = isAr ? "rtl" : "ltr";
+    document.documentElement.lang = lang;
+}
 </script>
