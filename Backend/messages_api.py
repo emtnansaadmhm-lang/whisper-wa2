@@ -34,6 +34,32 @@ def pick_first_existing(tables, candidates):
     return None
 
 
+def clean_number(value):
+    if value is None:
+        return "Unknown"
+
+    value = str(value).strip()
+
+    if value in ["status@broadcast", "status_me", "status"]:
+        return "Status"
+
+    if value == "lid_me":
+        return "Me"
+
+    if "@s.whatsapp.net" in value:
+        return value.split("@")[0]
+
+    if "@g.us" in value:
+        return value.split("@")[0]
+
+    import re
+    match = re.search(r"\d{8,15}", value)
+    if match:
+        return match.group(0)
+
+    return value
+
+
 @messages_api.route("/api/messages/<case_id>", methods=["GET"])
 def get_messages(case_id):
     db_path = get_db_path(case_id)
@@ -72,6 +98,7 @@ def get_messages(case_id):
         # أعمدة شائعة
         id_col = "_id" if "_id" in cols else ("id" if "id" in cols else None)
         key_id_col = "key_id" if "key_id" in cols else None
+
         chat_col = None
         for c in ["key_remote_jid", "chat_row_id", "jid_row_id", "remote_jid", "jid"]:
             if c in cols:
@@ -113,8 +140,6 @@ def get_messages(case_id):
         selected_cols.append(f"{ts_col} AS msg_ts" if ts_col else "NULL AS msg_ts")
         selected_cols.append(f"{from_me_col} AS from_me" if from_me_col else "0 AS from_me")
 
-        where_clause = "msg_text IS NOT NULL AND TRIM(msg_text) != ''"
-
         query = f"""
             SELECT {", ".join(selected_cols)}
             FROM {message_table}
@@ -126,20 +151,39 @@ def get_messages(case_id):
         cur.execute(query)
         rows = cur.fetchall()
 
-        # محاولة ربط أسماء المحادثات إذا chat_ref عبارة عن row id
+        # محاولة ربط أسماء/أرقام المحادثات إذا chat_ref عبارة عن row id
         chat_names_by_id = {}
 
         if "jid" in tables:
             jid_cols = get_columns(cur, "jid")
-            if "user" in jid_cols:
+
+            if "_id" in jid_cols and "user" in jid_cols and "server" in jid_cols:
+                select_fields = ["_id", "user", "server"]
                 if "raw_string" in jid_cols:
-                    cur.execute("SELECT _id, COALESCE(raw_string, user) AS name FROM jid")
-                    for r in cur.fetchall():
-                        chat_names_by_id[str(r[0])] = r["name"]
-                else:
-                    cur.execute("SELECT _id, user AS name FROM jid")
-                    for r in cur.fetchall():
-                        chat_names_by_id[str(r[0])] = r["name"]
+                    select_fields.append("raw_string")
+
+                cur.execute(f"SELECT {', '.join(select_fields)} FROM jid")
+
+                for r in cur.fetchall():
+                    jid_id = str(r["_id"])
+                    user_val = str(r["user"] or "").strip()
+                    server_val = str(r["server"] or "").strip().lower()
+                    raw_val = str(r["raw_string"] or "").strip() if "raw_string" in r.keys() else ""
+
+                    display_name = raw_val or user_val or jid_id
+
+                    if server_val == "s.whatsapp.net" and user_val:
+                        display_name = user_val
+                    elif server_val == "broadcast":
+                        display_name = "Status"
+                    elif user_val == "status_me":
+                        display_name = "Status"
+                    elif user_val == "lid_me":
+                        display_name = "Me"
+                    elif user_val:
+                        display_name = user_val
+
+                    chat_names_by_id[jid_id] = display_name
 
         if "chat" in tables:
             chat_cols = get_columns(cur, "chat")
@@ -187,7 +231,7 @@ def get_messages(case_id):
             if chat_ref not in chats_map:
                 chats_map[chat_ref] = {
                     "id": chat_ref,
-                    "number": chat_ref,
+                    "number": clean_number(chat_name),
                     "name": chat_name,
                     "last_message": text,
                     "last_time": display_time,
