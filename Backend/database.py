@@ -3,7 +3,7 @@ Database Helper Functions for Whisper-WA
 """
 
 import os
-from models import db, User, AccountRequest, Case
+from models import db, User, AccountRequest, Case, CaseInvestigator
 from datetime import datetime
 
 
@@ -290,3 +290,80 @@ def create_next_case(base_cases_dir="Cases"):
     """
     case_name = generate_next_case_id(base_cases_dir=base_cases_dir)
     return create_case_record(case_name)
+# =========================
+# CASE INVESTIGATORS HELPERS
+# =========================
+
+def assign_case_owner(case_name, user_id):
+    if not user_id:
+        return
+
+    existing = CaseInvestigator.query.filter_by(
+        case_name=case_name,
+        user_id=user_id
+    ).first()
+
+    if not existing:
+        db.session.add(CaseInvestigator(
+            case_name=case_name,
+            user_id=user_id,
+            is_owner=True
+        ))
+        db.session.commit()
+
+
+def add_investigator_to_case(case_name, user_id):
+    existing = CaseInvestigator.query.filter_by(
+        case_name=case_name,
+        user_id=user_id
+    ).first()
+
+    if not existing:
+        db.session.add(CaseInvestigator(
+            case_name=case_name,
+            user_id=user_id,
+            is_owner=False
+        ))
+        db.session.commit()
+
+
+def get_cases_for_user(user_id, role):
+    if role == "admin":
+        return get_all_cases()
+
+    if not user_id:
+        return []
+
+    links = CaseInvestigator.query.filter_by(user_id=user_id).all()
+    case_names = [l.case_name for l in links]
+
+    if not case_names:
+        return []
+
+    return Case.query.filter(
+        Case.case_name.in_(case_names)
+    ).order_by(Case.created_at.desc()).all()
+
+
+def get_case_investigators(case_name):
+    return CaseInvestigator.query.filter_by(case_name=case_name).all()
+
+def add_user_to_case(case_name, user_id):
+    if not case_name or not user_id:
+        return False
+
+    existing = CaseInvestigator.query.filter_by(
+        case_name=case_name,
+        user_id=user_id
+    ).first()
+
+    if existing:
+        return True
+
+    db.session.add(CaseInvestigator(
+        case_name=case_name,
+        user_id=user_id,
+        is_owner=False
+    ))
+    db.session.commit()
+    return True
