@@ -1,27 +1,23 @@
-from flask import Blueprint, jsonify, request
-from database import Case, db
-
+from flask import Blueprint, jsonify
+from database import get_all_cases
 bp_cases = Blueprint("bp_cases", __name__)
-
 @bp_cases.route("/api/cases", methods=["GET"])
 def api_get_cases():
-    try:
-       
-        cases = Case.query.all()
-
-       
-        cases = sorted(cases, key=lambda c: c.id, reverse=True)
-
-        return jsonify({
-            "ok": True,
-            "cases": [
-                {
-                    "id": c.id,
-                    "case_id": c.case_name
-                }
-                for c in cases
-            ]
-        }), 200
-    except Exception as e:
-        print(f"Error: {str(e)}")
-        return jsonify({"ok": False, "error": str(e)}), 500
+    cases = get_all_cases()
+    cases = sorted(
+        cases,
+        key=lambda c: c.created_at or "",
+        reverse=True
+    )
+    return jsonify({
+        "ok": True,
+        "cases": [
+            {
+                "id": c.id,
+                "case_id": c.case_name,
+                "created_at": c.created_at.isoformat() if c.created_at else None,
+                "created_at_text": c.created_at.strftime("%Y-%m-%d %H:%M:%S") if c.created_at else "No date"
+            }
+            for c in cases
+        ]
+    }), 200
