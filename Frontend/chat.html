@@ -970,10 +970,25 @@
       return true;
     }
 
-    function updateCaseBanner(title, subtitle = "") {
-      caseTitle.textContent = title || "القضيةالحالية: -";
-      caseSubtitle.textContent = subtitle || "";
-    }
+  function updateCaseBanner(title, desc) {
+  const bannerTitle = document.getElementById("caseTitle");
+  const bannerDesc = document.getElementById("caseSubtitle");
+  
+  const lang = localStorage.getItem("lang") || "ar";
+
+  
+  const pureId = title.match(/\d+/) ? title.match(/\d+/)[0] : "-";
+  const pureCount = desc.match(/\d+/) ? desc.match(/\d+/)[0] : "0";
+
+  
+  if (lang === "ar") {
+    if (bannerTitle) bannerTitle.innerText = "القضية الحالية: " + "Case_" + pureId;
+    if (bannerDesc) bannerDesc.innerText = "عدد القضايا المحفوظة: " + pureCount;
+  } else {
+    if (bannerTitle) bannerTitle.innerText = "Current Case: " + "Case_" + pureId;
+    if (bannerDesc) bannerDesc.innerText = "Saved Cases Count: " + pureCount;
+  }
+}
     function chatMatchesQuery(chat, q) {
       const query = String(q || "").trim();
       if (!query) return true;
@@ -1150,49 +1165,31 @@
       }
     }
 
-    async function loadCasesFromBackend() {
-      try {
-        const res = await fetch(`${API_BASE}/api/cases`);
-        const data = await res.json();
+async function loadCasesFromBackend() {
+  try {
+    const user = JSON.parse(localStorage.getItem("currentUser") || "{}");
+    const role = localStorage.getItem("userRole") || "user";
+    const name = user.name || "";
 
-        if (!res.ok || !data.ok) {
-          console.error("Failed to load cases:", data);
-          updateCaseBanner("القضيةالحالية: -", "فشل تحميل قائمة القضايا");
-          return;
-        }
+    const res = await fetch(`${API_BASE}/api/cases?investigator=${encodeURIComponent(name)}&role=${role}`);
+    const data = await res.json();
 
-        casesData = data.cases || [];
+    if (data.ok && data.cases && data.cases.length > 0) {
+      casesData = data.cases;
+      selectedCaseId = casesData[0].case_id;
 
-        if (!casesData.length) {
-          selectedCaseId = null;
-          localStorage.removeItem("case_id");
-          localStorage.removeItem("CURRENT_CASE_ID");
-          updateCaseBanner("القضية الحالية: -", "لا توجد قضايا محفوظة بعد");
-          return;
-        }
+      
+     updateCaseBanner(selectedCaseId, String(casesData.length));
 
-        const requestedCaseId =
-          urlParams.get("case_id") ||
-          localStorage.getItem("CURRENT_CASE_ID") ||
-          localStorage.getItem("case_id");
 
-        const requestedExists = requestedCaseId && casesData.some(c => c.case_id === requestedCaseId);
-
-        if (requestedExists) {
-          selectedCaseId = requestedCaseId;
-        } else {
-          selectedCaseId = casesData.length ? casesData[0].case_id : null;
-        }
-
-        localStorage.setItem("case_id", selectedCaseId);
-        localStorage.setItem("CURRENT_CASE_ID", selectedCaseId);
-
-        updateCaseBanner(`القضية الحالية: ${selectedCaseId}`, `عدد القضايا المحفوظة: ${casesData.length}`);
-      } catch (e) {
-        console.error("Cases API error:", e);
-        updateCaseBanner("القضية الحالية: -", "تعذر الاتصال بالباك لتحميل القضية");
+      if(typeof refreshHeaderWithRealNumber === 'function') {
+          refreshHeaderWithRealNumber(selectedCaseId);
       }
     }
+  } catch (e) {
+    console.error("Load Cases Error:", e);
+  }
+}
 
     async function loadChatsForCase(caseId) {
       if (!caseId) {
