@@ -515,9 +515,7 @@
     }
   </style>
 </head>
-
-<body>
-  <div class="animated-bg-logo">
+<div class="animated-bg-logo">
     <img src="logo.png" alt="Background Logo">
   </div>
 
@@ -567,10 +565,10 @@
         <div class="search-area">
           <div class="case-banner" id="caseBanner">
             <div class="case-banner-left">
-              <i class="fa-solid fa-folder-open"></i>
+              <i id="case-icon" class="fa-solid fa-folder-open"></i>
               <div>
-                <div class="case-title" id="caseTitle">القضيةالحالية: -</div>
-                <div class="case-subtitle" id="caseSubtitle">بانتظار تحميل المحادثات</div>
+                <div class="case-title" id="caseTitle">جاري جلب بيانات القضية...</div>
+                <div class="case-subtitle" id="caseSubtitle">تحقق من قاعدة بيانات الجهاز المستهدف</div>
               </div>
             </div>
           </div>
@@ -597,12 +595,57 @@
     </div>
   </div>
 
-  <script>
+ <script>
     const API_BASE = "http://127.0.0.1:5000";
 
     let casesData = [];
     let chatsData = [];
     const urlParams = new URLSearchParams(window.location.search);
+    const caseId = urlParams.get('case_id');
+
+    // الدالة المعدلة لجلب ID القضية ورقم الواتساب معاً
+    async function refreshHeaderWithRealNumber(cId) {
+        try {
+            const res = await fetch(`${API_BASE}/api/case-info/${cId}`);
+            const data = await res.json();
+            
+            if (data.ok) {
+                // استهداف عنوان القضية في البانر العلوي
+                const caseTitleElement = document.getElementById("caseTitle");
+                const caseIcon = document.getElementById("case-icon");
+
+                if (caseTitleElement) {
+                    // عرض: ID القضية | رقم الهاتف
+                    caseTitleElement.innerText = `${data.case_id} | ${data.owner_number}`;
+                }
+
+                if (caseIcon) {
+                    // تغيير الأيقونة إلى شعار واتساب وتلوينه بالأخضر
+                    caseIcon.className = "fab fa-whatsapp";
+                    caseIcon.style.color = "#25D366";
+                }
+                
+                // تحديث النص السفلي الصغير (Subtitle)
+                const caseSubtitle = document.getElementById("caseSubtitle");
+                if (caseSubtitle) {
+                    caseSubtitle.innerText = "تم التحقق من بيانات الحساب المستهدف بنجاح";
+                }
+            }
+        } catch (e) {
+            console.error("Could not fetch real owner number", e);
+            const caseTitleElement = document.getElementById("caseTitle");
+            if (caseTitleElement) {
+                caseTitleElement.innerText = `قضية: ${cId} (خطأ في جلب الرقم)`;
+            }
+        }
+    }
+
+    // استدعاء الدالة فور تحميل الصفحة إذا كان الـ case_id موجوداً
+    window.addEventListener("DOMContentLoaded", () => {
+        if (caseId) {
+            refreshHeaderWithRealNumber(caseId);
+        }
+    });
 
     let selectedCaseId =
       urlParams.get("case_id") ||
@@ -927,10 +970,25 @@
       return true;
     }
 
-    function updateCaseBanner(title, subtitle = "") {
-      caseTitle.textContent = title || "القضيةالحالية: -";
-      caseSubtitle.textContent = subtitle || "";
-    }
+function updateCaseBanner(title, desc) {
+  const bannerTitle = document.getElementById("caseTitle");
+  const bannerDesc = document.getElementById("caseSubtitle");
+  
+  const lang = localStorage.getItem("lang") || "ar";
+
+  // 1. استخراج الأرقام فقط (رقم القضية وعدد القضايا)
+  const pureId = title.match(/\d+/) ? title.match(/\d+/)[0] : "-";
+  const pureCount = desc.match(/\d+/) ? desc.match(/\d+/)[0] : "0";
+
+  // 2. الطباعة الصريحة حسب اللغة
+  if (lang === "ar") {
+    if (bannerTitle) bannerTitle.innerText = "القضية الحالية: " + "Case_" + pureId;
+    if (bannerDesc) bannerDesc.innerText = "عدد القضايا المحفوظة: " + pureCount;
+  } else {
+    if (bannerTitle) bannerTitle.innerText = "Current Case: " + "Case_" + pureId;
+    if (bannerDesc) bannerDesc.innerText = "Saved Cases Count: " + pureCount;
+  }
+}
     function chatMatchesQuery(chat, q) {
       const query = String(q || "").trim();
       if (!query) return true;
@@ -995,7 +1053,7 @@
       if (selectedChatId) {
         renderMessages(selectedChatId);
       } else {
-        messageView.innerHTML = `<div class="empty-state">لا توجد رسائل مطابقة أو لا توجد محادثات في هذه الكيس</div>`;
+        messageView.innerHTML = `<div class="empty-state">لا توجد رسائل مطابقة أو لا توجد محادثات في هذه القضية</div>`;
       }
     }
 
@@ -1008,11 +1066,11 @@
           <div class="chat-item active" data-chat-id="">
             <div class="chat-info">
               <h4>لا توجد محادثات</h4>
-              <p>لم يتم العثور على رسائل مطابقة أو الكيس فارغة</p>
+              <p>لم يتم العثور على رسائل مطابقة أو القضية فارغة</p>
             </div>
           </div>
         `;
-        messageView.innerHTML = `<div class="empty-state">لا توجد محادثات لعرضها في هذه الكيس</div>`;
+        messageView.innerHTML = `<div class="empty-state"> لا توجد محادثات لعرضها في هذه القضية</div>`;
         return;
       }
 
@@ -1024,7 +1082,7 @@
         item.innerHTML = `
           <input type="checkbox" checked>
           <div class="chat-info">
-           <h4>${escapeHtml(chat.number || chat.name || "Unknown")}</h4>
+            <h4>${escapeHtml(chat.name || chat.number || "Unknown")}</h4>
             <p>${escapeHtml(chat.last_message || "")}</p>
           </div>
           <span class="time">${escapeHtml(chat.last_time || "")}</span>
@@ -1107,49 +1165,31 @@
       }
     }
 
-    async function loadCasesFromBackend() {
-      try {
-        const res = await fetch(`${API_BASE}/api/cases`);
-        const data = await res.json();
+async function loadCasesFromBackend() {
+  try {
+    const user = JSON.parse(localStorage.getItem("currentUser") || "{}");
+    const role = localStorage.getItem("userRole") || "user";
+    const name = user.name || "";
 
-        if (!res.ok || !data.ok) {
-          console.error("Failed to load cases:", data);
-          updateCaseBanner("الكيس الحالية: -", "فشل تحميل قائمة الكيسات");
-          return;
-        }
+    const res = await fetch(`${API_BASE}/api/cases?investigator=${encodeURIComponent(name)}&role=${role}`);
+    const data = await res.json();
 
-        casesData = data.cases || [];
+    if (data.ok && data.cases && data.cases.length > 0) {
+      casesData = data.cases;
+      selectedCaseId = casesData[0].case_id;
 
-        if (!casesData.length) {
-          selectedCaseId = null;
-          localStorage.removeItem("case_id");
-          localStorage.removeItem("CURRENT_CASE_ID");
-          updateCaseBanner("الكيس الحالية: -", "لا توجد كيسات محفوظة بعد");
-          return;
-        }
+      
+     updateCaseBanner(selectedCaseId, String(casesData.length));
 
-        const requestedCaseId =
-          urlParams.get("case_id") ||
-          localStorage.getItem("CURRENT_CASE_ID") ||
-          localStorage.getItem("case_id");
 
-        const requestedExists = requestedCaseId && casesData.some(c => c.case_id === requestedCaseId);
-
-        if (requestedExists) {
-          selectedCaseId = requestedCaseId;
-        } else {
-          selectedCaseId = casesData.length ? casesData[0].case_id : null;
-        }
-
-        localStorage.setItem("case_id", selectedCaseId);
-        localStorage.setItem("CURRENT_CASE_ID", selectedCaseId);
-
-        updateCaseBanner(`القضية الحالية: ${selectedCaseId}`, `عدد القضايا المحفوظة: ${casesData.length}`);
-      } catch (e) {
-        console.error("Cases API error:", e);
-        updateCaseBanner("القضية الحالية: -", "تعذر الاتصال بالباك لتحميل القضية");
+      if(typeof refreshHeaderWithRealNumber === 'function') {
+          refreshHeaderWithRealNumber(selectedCaseId);
       }
     }
+  } catch (e) {
+    console.error("Load Cases Error:", e);
+  }
+}
 
     async function loadChatsForCase(caseId) {
       if (!caseId) {
@@ -1189,7 +1229,7 @@
           chatsData = [];
           suggestionPool = [];
           hideSuggestions();
-          updateCaseBanner(`الكيس الحالية: ${caseId}`, `فشل التحميل: ${data.error || "Unknown error"}`);
+          updateCaseBanner(`القضية الحالية: ${caseId}`, `فشل التحميل: ${data.error || "Unknown error"}`);
           return;
         }
 
@@ -1200,9 +1240,9 @@
         applySearch();
 
         if (chatsData.length) {
-          updateCaseBanner(`الكيس الحالية: ${caseId}`, `تم تحميل ${chatsData.length} محادثة`);
+          updateCaseBanner(`القضية الحالية: ${caseId}`, `تم تحميل ${chatsData.length} محادثة`);
         } else {
-          updateCaseBanner(`الكيس الحالية: ${caseId}`, "تم تحميل القضية لكن لا توجد محادثات للعرض");
+          updateCaseBanner(`القضية الحالية: ${caseId}`, "تم تحميل القضية لكن لا توجد محادثات للعرض");
         }
       } catch (e) {
         console.error("Backend error:", e);
@@ -1396,7 +1436,7 @@
         }
       });
     }
-	
+
     document.querySelectorAll(".tag").forEach(tag => {
       tag.addEventListener("click", () => {
         activeTagFilter = tag.dataset.tag || "all";
@@ -1469,4 +1509,3 @@ if (btnLang) {
   </script>
 </body>
 </html>
-
