@@ -515,9 +515,7 @@
     }
   </style>
 </head>
-
-<body>
-  <div class="animated-bg-logo">
+<div class="animated-bg-logo">
     <img src="logo.png" alt="Background Logo">
   </div>
 
@@ -556,6 +554,7 @@
                 <th id="th-type">النوع</th>
                 <th id="th-num">الرقم</th>
                 <th id="th-time">التاريخ والوقت</th>
+                <th id="th-remove">حذف</th>
               </tr>
             </thead>
             <tbody id="reportTbody"></tbody>
@@ -567,10 +566,10 @@
         <div class="search-area">
           <div class="case-banner" id="caseBanner">
             <div class="case-banner-left">
-              <i class="fa-solid fa-folder-open"></i>
+              <i id="case-icon" class="fa-solid fa-folder-open"></i>
               <div>
-                <div class="case-title" id="caseTitle">الكيس الحالية: -</div>
-                <div class="case-subtitle" id="caseSubtitle">بانتظار تحميل المحادثات</div>
+                <div class="case-title" id="caseTitle">جاري جلب بيانات القضية...</div>
+                <div class="case-subtitle" id="caseSubtitle">تحقق من قاعدة بيانات الجهاز المستهدف</div>
               </div>
             </div>
           </div>
@@ -597,12 +596,57 @@
     </div>
   </div>
 
-  <script>
+ <script>
     const API_BASE = "http://127.0.0.1:5000";
 
     let casesData = [];
     let chatsData = [];
     const urlParams = new URLSearchParams(window.location.search);
+    const caseId = urlParams.get('case_id');
+
+    // الدالة المعدلة لجلب ID القضية ورقم الواتساب معاً
+    async function refreshHeaderWithRealNumber(cId) {
+        try {
+            const res = await fetch(`${API_BASE}/api/case-info/${cId}`);
+            const data = await res.json();
+            
+            if (data.ok) {
+                // استهداف عنوان القضية في البانر العلوي
+                const caseTitleElement = document.getElementById("caseTitle");
+                const caseIcon = document.getElementById("case-icon");
+
+                if (caseTitleElement) {
+                    // عرض: ID القضية | رقم الهاتف
+                    caseTitleElement.innerText = `${data.case_id} | ${data.owner_number}`;
+                }
+
+                if (caseIcon) {
+                    // تغيير الأيقونة إلى شعار واتساب وتلوينه بالأخضر
+                    caseIcon.className = "fab fa-whatsapp";
+                    caseIcon.style.color = "#25D366";
+                }
+                
+                // تحديث النص السفلي الصغير (Subtitle)
+                const caseSubtitle = document.getElementById("caseSubtitle");
+                if (caseSubtitle) {
+                    caseSubtitle.innerText = "تم التحقق من بيانات الحساب المستهدف بنجاح";
+                }
+            }
+        } catch (e) {
+            console.error("Could not fetch real owner number", e);
+            const caseTitleElement = document.getElementById("caseTitle");
+            if (caseTitleElement) {
+                caseTitleElement.innerText = `قضية: ${cId} (خطأ في جلب الرقم)`;
+            }
+        }
+    }
+
+    // استدعاء الدالة فور تحميل الصفحة إذا كان الـ case_id موجوداً
+    window.addEventListener("DOMContentLoaded", () => {
+        if (caseId) {
+            refreshHeaderWithRealNumber(caseId);
+        }
+    });
 
     let selectedCaseId =
       urlParams.get("case_id") ||
@@ -618,6 +662,7 @@
     let selectedChatId = null;
     let currentSearchQuery = "";
     const selectedMessageIds = new Set();
+    const reportRowsMap = new Map();
 
     let suggestionPool = [];
     let activeTagFilter = "all";
@@ -633,10 +678,6 @@
     const caseTitle = document.getElementById("caseTitle");
     const caseSubtitle = document.getElementById("caseSubtitle");
 
-    function updateCaseBanner(title, subtitle = "") {
-      caseTitle.textContent = title || "الكيس الحالية: -";
-      caseSubtitle.textContent = subtitle || "";
-    }
 
     function initHeaderForPage(pageName){
       const backBtn = document.getElementById("btnBack");
@@ -691,15 +732,32 @@
       if (langText) langText.textContent = isAr ? "AR" : "EN";
 
       document.title = isAr ? "Whisper-WA | بناء التقرير" : "Whisper-WA | Report Builder";
+      
+      // إصلاح بقة "مسودة التقرير" - استخدام innerHTML للحفاظ على الأيقونة
+      const draftTitle = document.getElementById("txt-draft-title");
+      if (draftTitle) {
+        draftTitle.innerHTML = isAr 
+          ? '<i class="fa-solid fa-file-contract"></i> مسودة التقرير' 
+          : '<i class="fa-solid fa-file-contract"></i> Report Draft';
+      }
+
       setText("txt-export", isAr ? "تنزيل التقرير" : "Download Report");
       setText("txt-analysis", isAr ? "تحليل" : "Analysis");
       setText("txt-view", isAr ? "عرض التقرير" : "View Report");
-      setText("txt-add-btn", isAr ? "إضافة للتقرير الحالي" : "Add to Current Report");
+      
+      // ترجمة زر الإضافة مع الأيقونة الخاصة به
+      const addBtn = document.getElementById("txt-add-btn");
+      if (addBtn) {
+        addBtn.innerHTML = isAr 
+          ? '<i class="fa-solid fa-plus-circle"></i> إضافة للتقرير الحالي' 
+          : '<i class="fa-solid fa-plus-circle"></i> Add to Current Report';
+      }
+
       setText("th-msg", isAr ? "الرسالة" : "Message");
       setText("th-type", isAr ? "النوع" : "Type");
       setText("th-num", isAr ? "الرقم" : "Number");
       setText("th-time", isAr ? "التاريخ والوقت" : "Date & Time");
-      
+      setText("th-remove", isAr ? "حذف" : "Remove");
 
       if (searchInput){
         searchInput.placeholder = isAr
@@ -709,9 +767,15 @@
 
       if (!selectedCaseId) {
         updateCaseBanner(
-          isAr ? "الكيس الحالية: -" : "Current Case: -",
+          isAr ? "القضيةالحالية: -" : "Current Case: -",
           isAr ? "بانتظار تحميل المحادثات" : "Waiting to load chats"
-        );
+        )
+      } else {
+        
+        const bannerTitle = document.getElementById("caseTitle");
+        if (bannerTitle) {
+          bannerTitle.textContent = isAr ? `القضيةالحالية: ${selectedCaseId}` : `Current Case: ${selectedCaseId}`;
+        }
       }
     }
 
@@ -909,6 +973,10 @@
       return true;
     }
 
+    function updateCaseBanner(title, subtitle = "") {
+      caseTitle.textContent = title || "القضيةالحالية: -";
+      caseSubtitle.textContent = subtitle || "";
+    }
     function chatMatchesQuery(chat, q) {
       const query = String(q || "").trim();
       if (!query) return true;
@@ -973,7 +1041,7 @@
       if (selectedChatId) {
         renderMessages(selectedChatId);
       } else {
-        messageView.innerHTML = `<div class="empty-state">لا توجد رسائل مطابقة أو لا توجد محادثات في هذه الكيس</div>`;
+        messageView.innerHTML = `<div class="empty-state">لا توجد رسائل مطابقة أو لا توجد محادثات في هذه القضية</div>`;
       }
     }
 
@@ -986,11 +1054,11 @@
           <div class="chat-item active" data-chat-id="">
             <div class="chat-info">
               <h4>لا توجد محادثات</h4>
-              <p>لم يتم العثور على رسائل مطابقة أو الكيس فارغة</p>
+              <p>لم يتم العثور على رسائل مطابقة أو القضية فارغة</p>
             </div>
           </div>
         `;
-        messageView.innerHTML = `<div class="empty-state">لا توجد محادثات لعرضها في هذه الكيس</div>`;
+        messageView.innerHTML = `<div class="empty-state"> لا توجد محادثات لعرضها في هذه القضية</div>`;
         return;
       }
 
@@ -1032,7 +1100,7 @@
         return;
       }
 
-      selectedMessageIds.clear();
+      
       messageView.innerHTML = "";
 
       let firstMatchedBox = null;
@@ -1041,6 +1109,10 @@
         const box = document.createElement("div");
         box.className = `msg ${m.type}`;
         box.dataset.msgId = m.id;
+        const selectionKey = `${chat.id}||${m.id}`;
+if (selectedMessageIds.has(selectionKey)) {
+  box.classList.add("selected");
+}
 
         const timeOnly = m.datetime && m.datetime.includes(" ")
           ? m.datetime.split(" ")[1]
@@ -1061,16 +1133,16 @@
           box.classList.add("focused-hit");
         }
 
-        box.addEventListener("click", () => {
-          const id = box.dataset.msgId;
-          if (selectedMessageIds.has(id)) {
-            selectedMessageIds.delete(id);
-            box.classList.remove("selected");
-          } else {
-            selectedMessageIds.add(id);
-            box.classList.add("selected");
-          }
-        });
+box.addEventListener("click", () => {
+  const selectionKey = `${chat.id}||${m.id}`;
+  if (selectedMessageIds.has(selectionKey)) {
+    selectedMessageIds.delete(selectionKey);
+    box.classList.remove("selected");
+  } else {
+    selectedMessageIds.add(selectionKey);
+    box.classList.add("selected");
+  }
+});
 
         messageView.appendChild(box);
       });
@@ -1092,7 +1164,7 @@
 
         if (!res.ok || !data.ok) {
           console.error("Failed to load cases:", data);
-          updateCaseBanner("الكيس الحالية: -", "فشل تحميل قائمة الكيسات");
+          updateCaseBanner("القضيةالحالية: -", "فشل تحميل قائمة القضايا");
           return;
         }
 
@@ -1102,7 +1174,7 @@
           selectedCaseId = null;
           localStorage.removeItem("case_id");
           localStorage.removeItem("CURRENT_CASE_ID");
-          updateCaseBanner("الكيس الحالية: -", "لا توجد كيسات محفوظة بعد");
+          updateCaseBanner("القضية الحالية: -", "لا توجد قضايا محفوظة بعد");
           return;
         }
 
@@ -1122,10 +1194,10 @@
         localStorage.setItem("case_id", selectedCaseId);
         localStorage.setItem("CURRENT_CASE_ID", selectedCaseId);
 
-        updateCaseBanner(`الكيس الحالية: ${selectedCaseId}`, `عدد الكيسات المحفوظة: ${casesData.length}`);
+        updateCaseBanner(`القضية الحالية: ${selectedCaseId}`, `عدد القضايا المحفوظة: ${casesData.length}`);
       } catch (e) {
         console.error("Cases API error:", e);
-        updateCaseBanner("الكيس الحالية: -", "تعذر الاتصال بالباك لتحميل الكيسات");
+        updateCaseBanner("القضية الحالية: -", "تعذر الاتصال بالباك لتحميل القضية");
       }
     }
 
@@ -1135,19 +1207,19 @@
         chatListContainer.innerHTML = `
           <div class="chat-item active">
             <div class="chat-info">
-              <h4>لا توجد كيس محددة</h4>
-              <p>ارجعي لصفحة الاتصال أو افتحي آخر كيس</p>
+              <h4>لا توجد قضية محددة</h4>
+              <p>ارجعي لصفحة الاتصال أو افتحي آخر قضية </p>
             </div>
           </div>
         `;
-        messageView.innerHTML = `<div class="empty-state">لا توجد كيس محددة للعرض</div>`;
+        messageView.innerHTML = `<div class="empty-state">لا توجد قضية محددة للعرض</div>`;
         return;
       }
 
       localStorage.setItem("case_id", caseId);
       localStorage.setItem("CURRENT_CASE_ID", caseId);
 
-      updateCaseBanner(`الكيس الحالية: ${caseId}`, "جاري تحميل المحادثات...");
+      updateCaseBanner(`القضية الحالية: ${caseId}`, "جاري تحميل المحادثات...");
 
       try {
         const res = await fetch(`${API_BASE}/api/messages/${caseId}`);
@@ -1167,7 +1239,7 @@
           chatsData = [];
           suggestionPool = [];
           hideSuggestions();
-          updateCaseBanner(`الكيس الحالية: ${caseId}`, `فشل التحميل: ${data.error || "Unknown error"}`);
+          updateCaseBanner(`القضية الحالية: ${caseId}`, `فشل التحميل: ${data.error || "Unknown error"}`);
           return;
         }
 
@@ -1178,9 +1250,9 @@
         applySearch();
 
         if (chatsData.length) {
-          updateCaseBanner(`الكيس الحالية: ${caseId}`, `تم تحميل ${chatsData.length} محادثة`);
+          updateCaseBanner(`القضية الحالية: ${caseId}`, `تم تحميل ${chatsData.length} محادثة`);
         } else {
-          updateCaseBanner(`الكيس الحالية: ${caseId}`, "تم تحميل الكيس لكن لا توجد محادثات للعرض");
+          updateCaseBanner(`القضية الحالية: ${caseId}`, "تم تحميل القضية لكن لا توجد محادثات للعرض");
         }
       } catch (e) {
         console.error("Backend error:", e);
@@ -1195,81 +1267,101 @@
         messageView.innerHTML = `<div class="empty-state">تعذر الاتصال بالباك لتحميل المحادثات</div>`;
         suggestionPool = [];
         hideSuggestions();
-        updateCaseBanner(`الكيس الحالية: ${caseId}`, "خطأ اتصال مع الباك");
+        updateCaseBanner(`القضية الحالية: ${caseId}`, "خطأ اتصال مع الباك");
       }
     }
 
-    function appendRow({ text, type, number, datetime }) {
-      const tr = document.createElement("tr");
+    function appendRow({ key, text, type, number, datetime }) {
+  if (reportRowsMap.has(key)) return;
 
-      const tdMsg = document.createElement("td");
-      tdMsg.className = "cell-msg";
-      tdMsg.textContent = text;
+  reportRowsMap.set(key, { key, text, type, number, datetime });
 
-      const tdType = document.createElement("td");
-      const badge = document.createElement("span");
-      badge.className = `badge-type ${type === "sent" ? "badge-sent" : "badge-recv"}`;
-      badge.textContent = (type === "sent") ? "Sent" : "Received";
-      tdType.appendChild(badge);
+  const tr = document.createElement("tr");
+  tr.dataset.rowKey = key;
 
-      const tdNum = document.createElement("td");
-      tdNum.textContent = number;
+  const tdMsg = document.createElement("td");
+  tdMsg.className = "cell-msg";
+  tdMsg.textContent = text;
 
-      const tdTime = document.createElement("td");
-      tdTime.textContent = datetime;
+  const tdType = document.createElement("td");
+  const badge = document.createElement("span");
+  badge.className = `badge-type ${type === "sent" ? "badge-sent" : "badge-recv"}`;
+  badge.textContent = (type === "sent") ? "Sent" : "Received";
+  tdType.appendChild(badge);
 
-      tr.appendChild(tdMsg);
-      tr.appendChild(tdType);
-      tr.appendChild(tdNum);
-      tr.appendChild(tdTime);
+  const tdNum = document.createElement("td");
+  tdNum.textContent = number;
 
-      tbody.appendChild(tr);
-    }
+  const tdTime = document.createElement("td");
+  tdTime.textContent = datetime;
 
-    addBtn.addEventListener("click", () => {
-      const chat = chatsData.find(c => c.id === selectedChatId);
-      if (!chat) return;
+  const tdRemove = document.createElement("td");
+  const removeBtn = document.createElement("button");
+  removeBtn.type = "button";
+  removeBtn.textContent = "✕";
+  removeBtn.style.background = "transparent";
+  removeBtn.style.border = "none";
+  removeBtn.style.color = "#ff8a8a";
+  removeBtn.style.cursor = "pointer";
+  removeBtn.style.fontSize = "1rem";
 
-      tbody.innerHTML = "";
-      const hasSelected = selectedMessageIds.size > 0;
+  removeBtn.addEventListener("click", () => {
+    reportRowsMap.delete(key);
+    tr.remove();
+  });
 
-      if (hasSelected) {
-        chat.messages
-          .filter(m => selectedMessageIds.has(m.id))
-          .forEach(m => appendRow({
-            text: m.text,
-            type: m.type,
-            number: chat.number,
-            datetime: m.datetime
-          }));
-      } else {
-        chat.messages.forEach(m => appendRow({
-          text: m.text,
-          type: m.type,
-          number: chat.number,
-          datetime: m.datetime
-        }));
-      }
-    });
+  tdRemove.appendChild(removeBtn);
 
-    function collectReportRows() {
-      const rows = [...tbody.querySelectorAll("tr")];
-      return rows.map(r => {
-        const cols = [...r.querySelectorAll("td")];
-        return {
-          message: cols[0] ? cols[0].innerText.trim() : "",
-          type: cols[1] ? cols[1].innerText.trim() : "",
-          number: cols[2] ? cols[2].innerText.trim() : "",
-          datetime: cols[3] ? cols[3].innerText.trim() : ""
-        };
-      });
-    }
+  tr.appendChild(tdMsg);
+  tr.appendChild(tdType);
+  tr.appendChild(tdNum);
+  tr.appendChild(tdTime);
+  tr.appendChild(tdRemove);
+
+  tbody.appendChild(tr);
+}
+addBtn.addEventListener("click", () => {
+  const chat = chatsData.find(c => c.id === selectedChatId);
+  if (!chat) return;
+
+  const selectedKeysForThisChat = [...selectedMessageIds].filter(k => k.startsWith(`${chat.id}||`));
+  const hasSelectedForThisChat = selectedKeysForThisChat.length > 0;
+
+  if (hasSelectedForThisChat) {
+    chat.messages
+      .filter(m => selectedMessageIds.has(`${chat.id}||${m.id}`))
+      .forEach(m => appendRow({
+        key: `${chat.id}||${m.id}`,
+        text: m.text,
+        type: m.type,
+        number: chat.number,
+        datetime: m.datetime
+      }));
+  } else {
+    chat.messages.forEach(m => appendRow({
+      key: `${chat.id}||${m.id}`,
+      text: m.text,
+      type: m.type,
+      number: chat.number,
+      datetime: m.datetime
+    }));
+  }
+});
+
+function collectReportRows() {
+  return [...reportRowsMap.values()].map(row => ({
+    message: row.text,
+    type: row.type === "sent" ? "Sent" : "Received",
+    number: row.number,
+    datetime: row.datetime
+  }));
+}
 
     async function downloadReport(format) {
       const rows = collectReportRows();
 
       if (!rows.length) {
-        alert("أضيفي الرسائل للتقرير أولًا");
+        alert("أضف الرسائل للتقرير أولًا");
         return;
       }
 
@@ -1326,7 +1418,7 @@
       const lang = document.documentElement.lang || "ar";
       const choice = prompt(
         lang === "ar"
-          ? "اكتبي نوع الملف: pdf أو csv"
+          ? "اكتب نوع الملف: pdf أو csv"
           : "Enter export format: pdf or csv",
         "pdf"
       );
@@ -1430,7 +1522,7 @@ if (btnLang) {
         if (selectedCaseId) {
           await loadChatsForCase(selectedCaseId);
         } else {
-          updateCaseBanner("الكيس الحالية: -", "لا توجد كيس محددة حاليًا");
+          updateCaseBanner("القضية الحالية: -", "لا توجد قضية محددة حاليًا");
         }
       } catch (e) {
         console.error("Header load error:", e);
@@ -1440,7 +1532,7 @@ if (btnLang) {
         if (selectedCaseId) {
           await loadChatsForCase(selectedCaseId);
         } else {
-          updateCaseBanner("الكيس الحالية: -", "لا توجد كيس محددة حاليًا");
+          updateCaseBanner("القضية الحالية: -", "لا توجد قضية محددة حاليًا");
         }
       }
     });
