@@ -970,25 +970,11 @@
       return true;
     }
 
-  function updateCaseBanner(title, desc) {
-  const bannerTitle = document.getElementById("caseTitle");
-  const bannerDesc = document.getElementById("caseSubtitle");
-  
-  const lang = localStorage.getItem("lang") || "ar";
+    function updateCaseBanner(title, subtitle = "") {
+      caseTitle.textContent = title || "القضيةالحالية: -";
+      caseSubtitle.textContent = subtitle || "";
+    }
 
-  
-  const pureId = title.match(/\d+/) ? title.match(/\d+/)[0] : "-";
-  const pureCount = desc.match(/\d+/) ? desc.match(/\d+/)[0] : "0";
-
-  
-  if (lang === "ar") {
-    if (bannerTitle) bannerTitle.innerText = "القضية الحالية: " + "Case_" + pureId;
-    if (bannerDesc) bannerDesc.innerText = "عدد القضايا المحفوظة: " + pureCount;
-  } else {
-    if (bannerTitle) bannerTitle.innerText = "Current Case: " + "Case_" + pureId;
-    if (bannerDesc) bannerDesc.innerText = "Saved Cases Count: " + pureCount;
-  }
-}
     function chatMatchesQuery(chat, q) {
       const query = String(q || "").trim();
       if (!query) return true;
@@ -1191,73 +1177,47 @@ async function loadCasesFromBackend() {
   }
 }
 
-    async function loadChatsForCase(caseId) {
-      if (!caseId) {
-        chatsData = [];
-        chatListContainer.innerHTML = `
-          <div class="chat-item active">
-            <div class="chat-info">
-              <h4>لا توجد قضية محددة</h4>
-              <p>ارجعي لصفحة الاتصال أو افتحي آخر قضية </p>
-            </div>
-          </div>
-        `;
-        messageView.innerHTML = `<div class="empty-state">لا توجد قضية محددة للعرض</div>`;
-        return;
-      }
-
-      localStorage.setItem("case_id", caseId);
-      localStorage.setItem("CURRENT_CASE_ID", caseId);
-
-      updateCaseBanner(`القضية الحالية: ${caseId}`, "جاري تحميل المحادثات...");
-
+    async function loadCasesFromBackend() {
       try {
-        const res = await fetch(`${API_BASE}/api/messages/${caseId}`);
+        const res = await fetch(`${API_BASE}/api/cases`);
         const data = await res.json();
 
         if (!res.ok || !data.ok) {
-          console.error("Failed to load chats:", data.error || data);
-          chatListContainer.innerHTML = `
-            <div class="chat-item active">
-              <div class="chat-info">
-                <h4>خطأ</h4>
-                <p>${escapeHtml(data.error || "تعذر تحميل المحادثات")}</p>
-              </div>
-            </div>
-          `;
-          messageView.innerHTML = `<div class="empty-state">فشل تحميل محادثات ${escapeHtml(caseId)}</div>`;
-          chatsData = [];
-          suggestionPool = [];
-          hideSuggestions();
-          updateCaseBanner(`القضية الحالية: ${caseId}`, `فشل التحميل: ${data.error || "Unknown error"}`);
+          console.error("Failed to load cases:", data);
+          updateCaseBanner("الكيس الحالية: -", "فشل تحميل قائمة الكيسات");
           return;
         }
 
-        chatsData = data.chats || [];
-        selectedChatId = chatsData.length ? chatsData[0].id : null;
+        casesData = data.cases || [];
 
-        buildSuggestionPool();
-        applySearch();
-
-        if (chatsData.length) {
-          updateCaseBanner(`القضية الحالية: ${caseId}`, `تم تحميل ${chatsData.length} محادثة`);
-        } else {
-          updateCaseBanner(`القضية الحالية: ${caseId}`, "تم تحميل القضية لكن لا توجد محادثات للعرض");
+        if (!casesData.length) {
+          selectedCaseId = null;
+          localStorage.removeItem("case_id");
+          localStorage.removeItem("CURRENT_CASE_ID");
+          updateCaseBanner("الكيس الحالية: -", "لا توجد كيسات محفوظة بعد");
+          return;
         }
+
+        const requestedCaseId =
+          urlParams.get("case_id") ||
+          localStorage.getItem("CURRENT_CASE_ID") ||
+          localStorage.getItem("case_id");
+
+        const requestedExists = requestedCaseId && casesData.some(c => c.case_id === requestedCaseId);
+
+        if (requestedExists) {
+          selectedCaseId = requestedCaseId;
+        } else {
+          selectedCaseId = casesData.length ? casesData[0].case_id : null;
+        }
+
+        localStorage.setItem("case_id", selectedCaseId);
+        localStorage.setItem("CURRENT_CASE_ID", selectedCaseId);
+
+        updateCaseBanner(`القضية الحالية: ${selectedCaseId}`, `عدد القضايا المحفوظة: ${casesData.length}`);
       } catch (e) {
-        console.error("Backend error:", e);
-        chatListContainer.innerHTML = `
-          <div class="chat-item active">
-            <div class="chat-info">
-              <h4>Connection Error</h4>
-              <p>تعذر الاتصال بالباك</p>
-            </div>
-          </div>
-        `;
-        messageView.innerHTML = `<div class="empty-state">تعذر الاتصال بالباك لتحميل المحادثات</div>`;
-        suggestionPool = [];
-        hideSuggestions();
-        updateCaseBanner(`القضية الحالية: ${caseId}`, "خطأ اتصال مع الباك");
+        console.error("Cases API error:", e);
+        updateCaseBanner("القضية الحالية: -", "تعذر الاتصال بالباك لتحميل القضية");
       }
     }
 
