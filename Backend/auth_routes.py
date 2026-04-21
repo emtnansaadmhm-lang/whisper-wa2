@@ -9,7 +9,8 @@ from database import (
     get_all_active_users,
     reject_request,
     deactivate_user,
-    get_admin_stats
+    get_admin_stats,
+    search_users
 )
 
 bp_auth = Blueprint("bp_auth", __name__)
@@ -175,7 +176,27 @@ def admin_reject_request(current_user, request_id):
         "success": True,
         "message": "Request rejected successfully"
     }), 200
+@bp_auth.route("/api/users/list", methods=["GET"])
+def users_list():
+    query = (request.args.get("q") or "").strip()
 
+    if query:
+        users = search_users(query)
+    else:
+        users = get_all_active_users()
+
+    return jsonify({
+        "success": True,
+        "users": [
+            {
+                "id": u.id,
+                "name": u.name,
+                "email": u.email,
+                "role": u.role
+            }
+            for u in users if u.is_active
+        ]
+    }), 200
 
 @bp_auth.route("/api/admin/users", methods=["GET"])
 @admin_required
