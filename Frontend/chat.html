@@ -554,6 +554,7 @@
                 <th id="th-type">النوع</th>
                 <th id="th-num">الرقم</th>
                 <th id="th-time">التاريخ والوقت</th>
+                <th id="th-remove">حذف</th>
               </tr>
             </thead>
             <tbody id="reportTbody"></tbody>
@@ -661,6 +662,7 @@
     let selectedChatId = null;
     let currentSearchQuery = "";
     const selectedMessageIds = new Set();
+    const reportRowsMap = new Map();
 
     let suggestionPool = [];
     let activeTagFilter = "all";
@@ -755,6 +757,7 @@
       setText("th-type", isAr ? "النوع" : "Type");
       setText("th-num", isAr ? "الرقم" : "Number");
       setText("th-time", isAr ? "التاريخ والوقت" : "Date & Time");
+      setText("th-remove", isAr ? "حذف" : "Remove");
 
       if (searchInput){
         searchInput.placeholder = isAr
@@ -1112,7 +1115,7 @@ function updateCaseBanner(title, desc) {
         return;
       }
 
-      selectedMessageIds.clear();
+     
       messageView.innerHTML = "";
 
       let firstMatchedBox = null;
@@ -1121,6 +1124,10 @@ function updateCaseBanner(title, desc) {
         const box = document.createElement("div");
         box.className = `msg ${m.type}`;
         box.dataset.msgId = m.id;
+        const selectionKey = `${chat.id}||${m.id}`;
+if (selectedMessageIds.has(selectionKey)) {
+  box.classList.add("selected");
+}
 
         const timeOnly = m.datetime && m.datetime.includes(" ")
           ? m.datetime.split(" ")[1]
@@ -1141,16 +1148,16 @@ function updateCaseBanner(title, desc) {
           box.classList.add("focused-hit");
         }
 
-        box.addEventListener("click", () => {
-          const id = box.dataset.msgId;
-          if (selectedMessageIds.has(id)) {
-            selectedMessageIds.delete(id);
-            box.classList.remove("selected");
-          } else {
-            selectedMessageIds.add(id);
-            box.classList.add("selected");
-          }
-        });
+box.addEventListener("click", () => {
+  const selectionKey = `${chat.id}||${m.id}`;
+  if (selectedMessageIds.has(selectionKey)) {
+    selectedMessageIds.delete(selectionKey);
+    box.classList.remove("selected");
+  } else {
+    selectedMessageIds.add(selectionKey);
+    box.classList.add("selected");
+  }
+});
 
         messageView.appendChild(box);
       });
@@ -1261,71 +1268,92 @@ async function loadCasesFromBackend() {
       }
     }
 
-    function appendRow({ text, type, number, datetime }) {
-      const tr = document.createElement("tr");
+function appendRow({ key, text, type, number, datetime }) {
+  if (reportRowsMap.has(key)) return;
 
-      const tdMsg = document.createElement("td");
-      tdMsg.className = "cell-msg";
-      tdMsg.textContent = text;
+  reportRowsMap.set(key, { key, text, type, number, datetime });
 
-      const tdType = document.createElement("td");
-      const badge = document.createElement("span");
-      badge.className = `badge-type ${type === "sent" ? "badge-sent" : "badge-recv"}`;
-      badge.textContent = (type === "sent") ? "Sent" : "Received";
-      tdType.appendChild(badge);
+  const tr = document.createElement("tr");
+  tr.dataset.rowKey = key;
 
-      const tdNum = document.createElement("td");
-      tdNum.textContent = number;
+  const tdMsg = document.createElement("td");
+  tdMsg.className = "cell-msg";
+  tdMsg.textContent = text;
 
-      const tdTime = document.createElement("td");
-      tdTime.textContent = datetime;
+  const tdType = document.createElement("td");
+  const badge = document.createElement("span");
+  badge.className = `badge-type ${type === "sent" ? "badge-sent" : "badge-recv"}`;
+  badge.textContent = (type === "sent") ? "Sent" : "Received";
+  tdType.appendChild(badge);
 
-      tr.appendChild(tdMsg);
-      tr.appendChild(tdType);
-      tr.appendChild(tdNum);
-      tr.appendChild(tdTime);
+  const tdNum = document.createElement("td");
+  tdNum.textContent = number;
 
-      tbody.appendChild(tr);
-    }
+  const tdTime = document.createElement("td");
+  tdTime.textContent = datetime;
 
-    addBtn.addEventListener("click", () => {
-      const chat = chatsData.find(c => c.id === selectedChatId);
-      if (!chat) return;
+  const tdRemove = document.createElement("td");
+  const removeBtn = document.createElement("button");
+  removeBtn.type = "button";
+  removeBtn.textContent = "✕";
+  removeBtn.style.background = "transparent";
+  removeBtn.style.border = "none";
+  removeBtn.style.color = "#ff8a8a";
+  removeBtn.style.cursor = "pointer";
+  removeBtn.style.fontSize = "1rem";
 
-      tbody.innerHTML = "";
-      const hasSelected = selectedMessageIds.size > 0;
+  removeBtn.addEventListener("click", () => {
+    reportRowsMap.delete(key);
+    tr.remove();
+  });
 
-      if (hasSelected) {
-        chat.messages
-          .filter(m => selectedMessageIds.has(m.id))
-          .forEach(m => appendRow({
-            text: m.text,
-            type: m.type,
-            number: chat.number,
-            datetime: m.datetime
-          }));
-      } else {
-        chat.messages.forEach(m => appendRow({
-          text: m.text,
-          type: m.type,
-          number: chat.number,
-          datetime: m.datetime
-        }));
-      }
-    });
+  tdRemove.appendChild(removeBtn);
 
-    function collectReportRows() {
-      const rows = [...tbody.querySelectorAll("tr")];
-      return rows.map(r => {
-        const cols = [...r.querySelectorAll("td")];
-        return {
-          message: cols[0] ? cols[0].innerText.trim() : "",
-          type: cols[1] ? cols[1].innerText.trim() : "",
-          number: cols[2] ? cols[2].innerText.trim() : "",
-          datetime: cols[3] ? cols[3].innerText.trim() : ""
-        };
-      });
-    }
+  tr.appendChild(tdMsg);
+  tr.appendChild(tdType);
+  tr.appendChild(tdNum);
+  tr.appendChild(tdTime);
+  tr.appendChild(tdRemove);
+
+  tbody.appendChild(tr);
+}
+
+addBtn.addEventListener("click", () => {
+  const chat = chatsData.find(c => c.id === selectedChatId);
+  if (!chat) return;
+
+  const selectedKeysForThisChat = [...selectedMessageIds].filter(k => k.startsWith(`${chat.id}||`));
+  const hasSelectedForThisChat = selectedKeysForThisChat.length > 0;
+
+  if (hasSelectedForThisChat) {
+    chat.messages
+      .filter(m => selectedMessageIds.has(`${chat.id}||${m.id}`))
+      .forEach(m => appendRow({
+        key: `${chat.id}||${m.id}`,
+        text: m.text,
+        type: m.type,
+        number: chat.number,
+        datetime: m.datetime
+      }));
+  } else {
+    chat.messages.forEach(m => appendRow({
+      key: `${chat.id}||${m.id}`,
+      text: m.text,
+      type: m.type,
+      number: chat.number,
+      datetime: m.datetime
+    }));
+  }
+});
+
+function collectReportRows() {
+  return [...reportRowsMap.values()].map(row => ({
+    message: row.text,
+    type: row.type === "sent" ? "Sent" : "Received",
+    number: row.number,
+    datetime: row.datetime
+  }));
+}
 
     async function downloadReport(format) {
       const rows = collectReportRows();
