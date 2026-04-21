@@ -222,7 +222,89 @@
       gap: 10px;
       min-width: 0;
     }
+.case-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 
+.user-picker-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.user-picker-box {
+  width: min(460px, 92vw);
+  max-height: 80vh;
+  overflow: hidden;
+  background: rgba(20, 40, 30, 0.97);
+  border: 1px solid rgba(95, 191, 122, 0.35);
+  border-radius: 18px;
+  box-shadow: 0 10px 35px rgba(0,0,0,0.35);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.user-picker-box h3 {
+  color: var(--primary-light);
+  font-size: 1rem;
+}
+
+.user-picker-input {
+  width: 100%;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--glass-border);
+  padding: 10px 14px;
+  border-radius: 10px;
+  color: white;
+  outline: none;
+  font-family: 'Tajawal';
+}
+
+.user-results {
+  max-height: 260px;
+  overflow-y: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(0,0,0,0.18);
+}
+
+.user-item {
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.user-item:hover,
+.user-item.active {
+  background: rgba(95, 191, 122, 0.14);
+}
+
+.user-item-name {
+  font-weight: 700;
+  color: white;
+}
+
+.user-item-email {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  direction: ltr;
+  text-align: left;
+}
+
+.user-picker-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
     .case-banner i {
       color: var(--accent-glow);
     }
@@ -565,14 +647,21 @@
       <section class="glass-panel chat-interface">
         <div class="search-area">
           <div class="case-banner" id="caseBanner">
-            <div class="case-banner-left">
-              <i id="case-icon" class="fa-solid fa-folder-open"></i>
-              <div>
-                <div class="case-title" id="caseTitle">جاري جلب بيانات القضية...</div>
-                <div class="case-subtitle" id="caseSubtitle">تحقق من قاعدة بيانات الجهاز المستهدف</div>
-              </div>
-            </div>
-          </div>
+ <div class="case-banner-left">
+    <i id="case-icon" class="fa-solid fa-folder-open"></i>
+    <div>
+      <div class="case-title" id="caseTitle">جاري جلب بيانات القضية...</div>
+      <div class="case-subtitle" id="caseSubtitle">تحقق من قاعدة بيانات الجهاز المستهدف</div>
+    </div>
+  </div>
+
+  <div class="case-banner-actions">
+    <button class="btn-secondary" id="btnAddUser" type="button">
+      <i class="fa-solid fa-user-plus"></i>
+      <span id="txt-add-user">إضافة مستخدم</span>
+    </button>
+  </div>
+</div>
 
           <div class="search-input-wrapper">
             <i class="fa-solid fa-search"></i>
@@ -595,6 +684,25 @@
       </section>
     </div>
   </div>
+  <div class="user-picker-modal" id="userPickerModal">
+  <div class="user-picker-box">
+    <h3 id="userPickerTitle">إضافة مستخدم للقضية</h3>
+
+    <input
+      type="text"
+      id="userSearchInput"
+      class="user-picker-input"
+      placeholder="ابحث بالاسم أو الإيميل"
+    >
+
+    <div class="user-results" id="userResults"></div>
+
+    <div class="user-picker-actions">
+      <button class="btn-secondary" id="btnCloseUserPicker" type="button">إغلاق</button>
+      <button class="btn-primary" id="btnConfirmAddUser" type="button">إضافة</button>
+    </div>
+  </div>
+</div>
 
  <script>
     const API_BASE = "http://127.0.0.1:5000";
@@ -676,7 +784,16 @@
     const viewBtn = document.getElementById("btn-view");
     const suggestionsBox = document.getElementById("searchSuggestions");
     const caseTitle = document.getElementById("caseTitle");
-    const caseSubtitle = document.getElementById("caseSubtitle");
+const caseSubtitle = document.getElementById("caseSubtitle");
+const btnAddUser = document.getElementById("btnAddUser");
+const userPickerModal = document.getElementById("userPickerModal");
+const btnCloseUserPicker = document.getElementById("btnCloseUserPicker");
+const btnConfirmAddUser = document.getElementById("btnConfirmAddUser");
+const userSearchInput = document.getElementById("userSearchInput");
+const userResults = document.getElementById("userResults");
+
+let selectedUserToAdd = null;
+let availableUsers = [];
 
 
     function initHeaderForPage(pageName){
@@ -758,6 +875,14 @@
       setText("th-num", isAr ? "الرقم" : "Number");
       setText("th-time", isAr ? "التاريخ والوقت" : "Date & Time");
       setText("th-remove", isAr ? "حذف" : "Remove");
+setText("txt-add-user", isAr ? "إضافة مستخدم" : "Add User");
+setText("userPickerTitle", isAr ? "إضافة مستخدم للقضية" : "Add User to Case");
+
+if (userSearchInput) {
+  userSearchInput.placeholder = isAr ? "ابحث بالاسم أو الإيميل" : "Search by name or email";
+}
+if (btnCloseUserPicker) btnCloseUserPicker.textContent = isAr ? "إغلاق" : "Close";
+if (btnConfirmAddUser) btnConfirmAddUser.textContent = isAr ? "إضافة" : "Add";
 
       if (searchInput){
         searchInput.placeholder = isAr
@@ -1175,10 +1300,10 @@ box.addEventListener("click", () => {
 async function loadCasesFromBackend() {
   try {
     const user = JSON.parse(localStorage.getItem("currentUser") || "{}");
-    const role = localStorage.getItem("userRole") || "user";
-    const name = user.name || "";
+const role = localStorage.getItem("userRole") || "user";
+const userId = user.id || "";
 
-    const res = await fetch(`${API_BASE}/api/cases?investigator=${encodeURIComponent(name)}&role=${role}`);
+const res = await fetch(`${API_BASE}/api/cases?user_id=${encodeURIComponent(userId)}&role=${encodeURIComponent(role)}`);
     const data = await res.json();
 
     if (data.ok && data.cases && data.cases.length > 0) {
@@ -1492,7 +1617,120 @@ function collectReportRows() {
         hideSuggestions();
       }
     });
+function openUserPicker() {
+  userPickerModal.style.display = "flex";
+  userSearchInput.value = "";
+  selectedUserToAdd = null;
+  loadUsersList("");
+}
 
+function closeUserPicker() {
+  userPickerModal.style.display = "none";
+  userResults.innerHTML = "";
+  selectedUserToAdd = null;
+}
+
+async function loadUsersList(query = "") {
+  try {
+    const res = await fetch(`${API_BASE}/api/users/list?q=${encodeURIComponent(query)}`);
+    const data = await res.json();
+
+    if (!res.ok || !data.success) {
+      userResults.innerHTML = `<div class="empty-state">تعذر تحميل المستخدمين</div>`;
+      return;
+    }
+
+    const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
+    availableUsers = (data.users || []).filter(u => String(u.id) !== String(currentUser.id));
+
+    if (!availableUsers.length) {
+      userResults.innerHTML = `<div class="empty-state">لا يوجد مستخدمون</div>`;
+      return;
+    }
+
+    userResults.innerHTML = availableUsers.map(u => `
+      <div class="user-item" data-user-id="${u.id}">
+        <div class="user-item-name">${escapeHtml(u.name || "Unknown")}</div>
+        <div class="user-item-email">${escapeHtml(u.email || "")}</div>
+      </div>
+    `).join("");
+
+    document.querySelectorAll(".user-item").forEach(item => {
+      item.addEventListener("click", () => {
+        document.querySelectorAll(".user-item").forEach(x => x.classList.remove("active"));
+        item.classList.add("active");
+        selectedUserToAdd = item.getAttribute("data-user-id");
+      });
+    });
+
+  } catch (e) {
+    console.error("Load users error:", e);
+    userResults.innerHTML = `<div class="empty-state">خطأ في تحميل المستخدمين</div>`;
+  }
+}
+
+async function confirmAddUserToCase() {
+  if (!selectedCaseId) {
+    alert("لا توجد قضية محددة");
+    return;
+  }
+
+  if (!selectedUserToAdd) {
+    alert("اختر مستخدمًا أولًا");
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/api/case/add-user`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        case_id: selectedCaseId,
+        user_id: selectedUserToAdd
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data.ok) {
+      alert(data.error || "فشل إضافة المستخدم");
+      return;
+    }
+
+    alert("تمت إضافة المستخدم بنجاح");
+    closeUserPicker();
+  } catch (e) {
+    console.error("Add user error:", e);
+    alert("حدث خطأ أثناء إضافة المستخدم");
+  }
+}
+if (btnAddUser) {
+  btnAddUser.addEventListener("click", openUserPicker);
+}
+
+if (btnCloseUserPicker) {
+  btnCloseUserPicker.addEventListener("click", closeUserPicker);
+}
+
+if (btnConfirmAddUser) {
+  btnConfirmAddUser.addEventListener("click", confirmAddUserToCase);
+}
+
+if (userSearchInput) {
+  userSearchInput.addEventListener("input", () => {
+    loadUsersList(userSearchInput.value.trim());
+  });
+}
+
+if (userPickerModal) {
+  userPickerModal.addEventListener("click", (e) => {
+    if (e.target === userPickerModal) {
+      closeUserPicker();
+    }
+  });
+}
     window.addEventListener("DOMContentLoaded", async () => {
       try {
         const res = await fetch("header.html");
