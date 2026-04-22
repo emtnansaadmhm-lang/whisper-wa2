@@ -21,6 +21,22 @@ AR_KEYWORDS = [
     "اضغط", "عاجل", "دفع", "ايبان", "رقم سري", "كلمة المرور", "استرجاع"
 ]
 
+VERIFICATION_TERMS = {
+    "otp", "code", "verification", "verify", "login", "account", "password",
+    "pin", "confirm", "security", "reset",
+    "كود", "رمز", "تحقق", "تأكيد", "حساب", "رقم سري", "كلمة المرور", "استرجاع"
+}
+
+FINANCIAL_TERMS = {
+    "bank", "transfer", "payment", "wallet", "refund", "iban",
+    "بنك", "تحويل", "دفع", "ايبان"
+}
+
+URGENT_TERMS = {
+    "urgent", "immediately", "now", "asap", "quick", "click",
+    "عاجل", "الآن", "فوراً", "اضغط"
+}
+
 
 def analyze_whatsapp_data(messages, case_id):
     try:
@@ -38,6 +54,10 @@ def analyze_whatsapp_data(messages, case_id):
         numbers = extract_numbers(normalized)
         keywords = extract_keywords(normalized)
         flags = build_flags(urls, numbers, keywords, normalized)
+        flow = detect_suspicious_flow(normalized, urls, numbers, keywords)
+        intents = detect_message_intents(normalized)
+        top_suspicious_message = get_top_suspicious_message(normalized)
+        recommendations = build_recommendations(urls, numbers, keywords, normalized, flow, intents, top_suspicious_message)
 
         return {
             "ok": True,
@@ -45,6 +65,10 @@ def analyze_whatsapp_data(messages, case_id):
             "summary": summary,
             "activity": activity,
             "flags": flags,
+            "flow": flow,
+            "intents": intents,
+            "top_suspicious_message": top_suspicious_message,
+            "recommendations": recommendations,
             "urls": urls,
             "numbers": numbers,
             "keywords": keywords,
@@ -228,26 +252,31 @@ def extract_numbers(messages):
 
         for p in phones:
             value = clean_number(p)
-            if len(value) < 5:
+            if len(value) < 7:
                 continue
 
             if value not in number_map:
                 number_map[value] = {
                     "value": value,
-                    "context": "Number mentioned in message",
-                    "context_ar": "رقم مذكور داخل رسالة",
-                    "context_en": "Number mentioned in message",
+                    "type": "phone",
+                    "context": "Phone number mentioned in message",
+                    "context_ar": "رقم هاتف مذكور داخل رسالة",
+                    "context_en": "Phone number mentioned in message",
                     "count": 0
                 }
             number_map[value]["count"] += 1
 
         for o in otps:
+            if len(o) < 4 or len(o) > 8:
+                continue
+
             if o not in number_map:
                 number_map[o] = {
                     "value": o,
-                    "context": "Possible OTP/code",
-                    "context_ar": "كود أو OTP محتمل",
-                    "context_en": "Possible OTP/code",
+                    "type": "otp",
+                    "context": "Possible OTP or verification code",
+                    "context_ar": "كود تحقق أو OTP محتمل",
+                    "context_en": "Possible OTP or verification code",
                     "count": 0
                 }
             number_map[o]["count"] += 1
@@ -294,63 +323,296 @@ def extract_keywords(messages):
 def build_flags(urls, numbers, keywords, messages):
     flags = []
 
+    total = len(messages)
+    sent = sum(1 for m in messages if m["from_me"])
+    received = total - sent
+
     shorteners = ("bit.ly", "tinyurl", "t.co", "goo.gl", "is.gd", "cutt.ly")
-    suspicious_url = any(
+    has_shortened_url = any(
         any(short in item["url"].lower() for short in shorteners)
         for item in urls
     )
 
-    if suspicious_url:
+    has_external_urls = len(urls) > 0
+    has_otp = any(item.get("type") == "otp" for item in numbers)
+
+    keyword_set = {k["keyword"].lower() for k in keywords}
+    has_sensitive_keywords = bool(keyword_set.intersection({w.lower() for w in VERIFICATION_TERMS.union(FINANCIAL_TERMS)}))
+
+    high_inbound_ratio = False
+    if total > 0:
+        inbound_ratio = (received / total) * 100
+        high_inbound_ratio = inbound_ratio >= 80
+
+    if has_external_urls:
+        flags.append({
+            "level": "warn",
+            "title": "External links detected",
+            "title_ar": "تم العثور على روابط خارجية",
+            "title_en": "External links detected",
+            "description": "One or more external URLs were identified in the conversation.",
+            "desc": "One or more external URLs were identified in the conversation.",
+            "desc_ar": "تم رصد رابط خارجي واحد أو أكثر داخل المحادثة.",
+            "desc_en": "One or more external URLs were identified in the conversation."
+        })
+
+    if has_shortened_url:
         flags.append({
             "level": "warn",
             "title": "Shortened links detected",
-            "title_ar": "وجود روابط مختصرة",
+            "title_ar": "تم العثور على روابط مختصرة",
             "title_en": "Shortened links detected",
-            "description": "Short URLs were found and may require verification.",
-            "desc": "Short URLs were found and may require verification.",
-            "desc_ar": "تم رصد روابط مختصرة وتحتاج تحقق.",
-            "desc_en": "Short URLs were found and may require verification."
+            "description": "Shortened URLs may obscure the final destination and require verification.",
+            "desc": "Shortened URLs may obscure the final destination and require verification.",
+            "desc_ar": "الروابط المختصرة قد تخفي الوجهة النهائية وتحتاج إلى تحقق إضافي.",
+            "desc_en": "Shortened URLs may obscure the final destination and require verification."
         })
 
-    danger_words = {"otp", "bank", "transfer", "code", "verification", "تحويل", "بنك", "كود", "تحقق"}
-    keyword_set = {k["keyword"].lower() for k in keywords}
-    if keyword_set.intersection({w.lower() for w in danger_words}):
+    if has_otp:
         flags.append({
             "level": "danger",
-            "title": "Sensitive keywords detected",
-            "title_ar": "كلمات حساسة مرتبطة بالتحويل أو التحقق",
-            "title_en": "Sensitive keywords detected",
-            "description": "Potentially sensitive banking, verification, or OTP terms were found.",
-            "desc": "Potentially sensitive banking, verification, or OTP terms were found.",
-            "desc_ar": "تم رصد كلمات حساسة مثل كود أو بنك أو تحويل.",
-            "desc_en": "Potentially sensitive banking, verification, or OTP terms were found."
+            "title": "Possible OTP or verification codes detected",
+            "title_ar": "تم رصد أكواد تحقق محتملة",
+            "title_en": "Possible OTP or verification codes detected",
+            "description": "Numeric patterns resembling OTP or verification codes were detected in the messages.",
+            "desc": "Numeric patterns resembling OTP or verification codes were detected in the messages.",
+            "desc_ar": "تم العثور على أنماط رقمية تشبه أكواد التحقق أو OTP داخل الرسائل.",
+            "desc_en": "Numeric patterns resembling OTP or verification codes were detected in the messages."
         })
 
-    if numbers:
+    if has_sensitive_keywords:
         flags.append({
-            "level": "ok",
-            "title": "Numbers/codes extracted",
-            "title_ar": "تم استخراج أرقام وأكواد",
-            "title_en": "Numbers/codes extracted",
-            "description": "The analysis extracted phone numbers or possible codes from the messages.",
-            "desc": "The analysis extracted phone numbers or possible codes from the messages.",
-            "desc_ar": "التحليل استخرج أرقام أو أكواد محتملة من الرسائل.",
-            "desc_en": "The analysis extracted phone numbers or possible codes from the messages."
+            "level": "danger",
+            "title": "Sensitive verification or banking keywords detected",
+            "title_ar": "تم رصد كلمات حساسة مرتبطة بالتحقق أو المعاملات",
+            "title_en": "Sensitive verification or banking keywords detected",
+            "description": "Terms related to verification, credentials, banking, or account access were identified.",
+            "desc": "Terms related to verification, credentials, banking, or account access were identified.",
+            "desc_ar": "تم العثور على كلمات مرتبطة بالتحقق أو بيانات الدخول أو الحسابات أو المعاملات.",
+            "desc_en": "Terms related to verification, credentials, banking, or account access were identified."
+        })
+
+    if high_inbound_ratio:
+        flags.append({
+            "level": "warn",
+            "title": "High inbound communication pattern",
+            "title_ar": "نمط استقبال مرتفع للرسائل",
+            "title_en": "High inbound communication pattern",
+            "description": "The user receives significantly more messages than they send.",
+            "desc": "The user receives significantly more messages than they send.",
+            "desc_ar": "المستخدم يستقبل رسائل أكثر بكثير مما يرسل، وقد يشير ذلك إلى سلوك استهداف أو تلقي مكثف.",
+            "desc_en": "The user receives significantly more messages than they send."
+        })
+
+    if has_external_urls and has_otp and has_sensitive_keywords:
+        flags.append({
+            "level": "danger",
+            "title": "Combined phishing-related indicators observed",
+            "title_ar": "تم رصد مؤشرات مجتمعة قد تدل على تصيد",
+            "title_en": "Combined phishing-related indicators observed",
+            "description": "The presence of links, verification codes, and sensitive keywords may indicate phishing or social engineering activity.",
+            "desc": "The presence of links, verification codes, and sensitive keywords may indicate phishing or social engineering activity.",
+            "desc_ar": "وجود روابط مع أكواد تحقق وكلمات حساسة قد يشير إلى محاولة تصيد أو هندسة اجتماعية.",
+            "desc_en": "The presence of links, verification codes, and sensitive keywords may indicate phishing or social engineering activity."
         })
 
     if not flags:
         flags.append({
             "level": "ok",
-            "title": "No major indicators",
-            "title_ar": "لا توجد مؤشرات قوية",
-            "title_en": "No major indicators",
-            "description": "No major suspicious indicators were found in the current message set.",
-            "desc": "No major suspicious indicators were found in the current message set.",
-            "desc_ar": "لم يتم العثور على مؤشرات مشبوهة قوية في الرسائل الحالية.",
-            "desc_en": "No major suspicious indicators were found in the current message set."
+            "title": "No strong forensic indicators identified",
+            "title_ar": "لم يتم العثور على مؤشرات جنائية قوية",
+            "title_en": "No strong forensic indicators identified",
+            "description": "The current message set does not contain strong suspicious indicators based on the available rules.",
+            "desc": "The current message set does not contain strong suspicious indicators based on the available rules.",
+            "desc_ar": "الرسائل الحالية لا تحتوي على مؤشرات مشبوهة قوية وفقًا لقواعد التحليل الحالية.",
+            "desc_en": "The current message set does not contain strong suspicious indicators based on the available rules."
         })
 
     return flags
+
+
+def detect_suspicious_flow(messages, urls, numbers, keywords):
+    has_url = len(urls) > 0
+    has_otp = any(n.get("type") == "otp" for n in numbers)
+
+    keyword_set = {k["keyword"].lower() for k in keywords}
+    has_verification_keywords = bool(keyword_set.intersection({w.lower() for w in VERIFICATION_TERMS}))
+    has_financial_keywords = bool(keyword_set.intersection({w.lower() for w in FINANCIAL_TERMS}))
+
+    if has_url and has_otp and has_verification_keywords:
+        return {
+            "level": "danger",
+            "text_en": "Suspicious flow detected: link shared followed by verification-related content and code patterns.",
+            "text_ar": "تم رصد تسلسل مشبوه: مشاركة رابط تبعتها محتويات مرتبطة بالتحقق ثم ظهور أكواد.",
+        }
+
+    if has_url and has_verification_keywords:
+        return {
+            "level": "warn",
+            "text_en": "Potentially suspicious flow detected: external link with verification-related language.",
+            "text_ar": "تم رصد تسلسل قد يكون مشبوهاً: رابط خارجي مع عبارات مرتبطة بالتحقق.",
+        }
+
+    if has_otp and has_verification_keywords:
+        return {
+            "level": "warn",
+            "text_en": "Potentially suspicious flow detected: verification-related language with code patterns.",
+            "text_ar": "تم رصد تسلسل قد يكون مشبوهاً: عبارات تحقق مع ظهور أكواد.",
+        }
+
+    if has_url and has_financial_keywords:
+        return {
+            "level": "warn",
+            "text_en": "Potentially suspicious flow detected: external link with financial-related language.",
+            "text_ar": "تم رصد تسلسل قد يكون مشبوهاً: رابط خارجي مع عبارات مالية أو تحويلات.",
+        }
+
+    return None
+
+
+def detect_message_intents(messages):
+    verification_count = 0
+    financial_count = 0
+    urgent_count = 0
+
+    for msg in messages:
+        text = msg["text"].lower()
+
+        if any(term.lower() in text for term in VERIFICATION_TERMS):
+            verification_count += 1
+
+        if any(term.lower() in text for term in FINANCIAL_TERMS):
+            financial_count += 1
+
+        if any(term.lower() in text for term in URGENT_TERMS):
+            urgent_count += 1
+
+    counts = {
+        "verification": verification_count,
+        "financial": financial_count,
+        "urgent_action": urgent_count
+    }
+
+    top_label = max(counts, key=counts.get)
+    top_value = counts[top_label]
+
+    if top_value == 0:
+        return {
+            "primary_intent": "normal",
+            "label_ar": "محتوى اعتيادي",
+            "label_en": "Normal content",
+            "counts": counts
+        }
+
+    labels_ar = {
+        "verification": "محتوى مرتبط بالتحقق",
+        "financial": "محتوى مرتبط بالمعاملات",
+        "urgent_action": "محتوى يتضمن استعجالاً"
+    }
+
+    labels_en = {
+        "verification": "Verification-related content",
+        "financial": "Financial-related content",
+        "urgent_action": "Urgent-action content"
+    }
+
+    return {
+        "primary_intent": top_label,
+        "label_ar": labels_ar[top_label],
+        "label_en": labels_en[top_label],
+        "counts": counts
+    }
+
+
+def get_top_suspicious_message(messages):
+    best_score = 0
+    best_msg = None
+
+    for msg in messages:
+        text = msg["text"]
+        text_lower = text.lower()
+        score = 0
+
+        has_url = bool(URL_REGEX.search(text))
+        has_otp = bool(OTP_REGEX.search(text))
+        has_verification = any(term.lower() in text_lower for term in VERIFICATION_TERMS)
+        has_financial = any(term.lower() in text_lower for term in FINANCIAL_TERMS)
+        has_urgent = any(term.lower() in text_lower for term in URGENT_TERMS)
+
+        if has_url:
+            score += 2
+        if has_otp:
+            score += 3
+        if has_verification:
+            score += 2
+        if has_financial:
+            score += 2
+        if has_urgent:
+            score += 1
+
+        if score > best_score:
+            best_score = score
+            best_msg = msg
+
+    if best_score < 3 or not best_msg:
+        return None
+
+    preview = best_msg["text"][:160].strip()
+
+    return {
+        "score": best_score,
+        "message_id": best_msg.get("id"),
+        "datetime": best_msg.get("datetime") or "-",
+        "text_preview": preview,
+        "text_preview_ar": preview,
+        "text_preview_en": preview
+    }
+
+
+def build_recommendations(urls, numbers, keywords, messages, flow, intents, top_suspicious_message):
+    recs_ar = []
+    recs_en = []
+
+    has_url = len(urls) > 0
+    has_otp = any(n.get("type") == "otp" for n in numbers)
+    has_phone = any(n.get("type") == "phone" for n in numbers)
+
+    keyword_set = {k["keyword"].lower() for k in keywords}
+    has_verification_keywords = bool(keyword_set.intersection({w.lower() for w in VERIFICATION_TERMS}))
+    has_financial_keywords = bool(keyword_set.intersection({w.lower() for w in FINANCIAL_TERMS}))
+
+    if flow is not None:
+        recs_ar.append("راجع تسلسل الرسائل زمنيًا للتأكد من سياق الرابط أو الكود قبل اعتبارها محاولة مشبوهة.")
+        recs_en.append("Review the message sequence chronologically to verify the context of the link or code before treating it as suspicious.")
+
+    if has_url:
+        recs_ar.append("تحقق من الروابط الظاهرة في المحادثة قبل فتحها أو الاعتماد عليها.")
+        recs_en.append("Validate any URLs appearing in the conversation before opening or relying on them.")
+
+    if has_otp:
+        recs_ar.append("لا تتم مشاركة أكواد التحقق المستخرجة من المحادثة ما لم يثبت أنها جزء من إجراء مشروع.")
+        recs_en.append("Do not share verification codes extracted from the conversation unless they are confirmed to be part of a legitimate process.")
+
+    if has_financial_keywords:
+        recs_ar.append("راجع الرسائل ذات الطابع المالي أو البنكي يدويًا للتأكد من مشروعيتها.")
+        recs_en.append("Manually review messages with financial or banking language to assess legitimacy.")
+
+    if top_suspicious_message is not None:
+        recs_ar.append("ابدأ المراجعة اليدوية بالرسالة الأعلى اشتباهاً ثم اربطها بباقي الرسائل المحيطة بها.")
+        recs_en.append("Start manual review with the highest-scoring suspicious message and correlate it with surrounding messages.")
+
+    if has_phone and (has_url or has_verification_keywords):
+        recs_ar.append("راجع هوية المرسل وسياق التواصل معه قبل اتخاذ إجراء أو مشاركة بيانات إضافية.")
+        recs_en.append("Review sender identity and communication context before taking action or sharing additional information.")
+
+    if not recs_ar:
+        recs_ar.append("لا توجد توصية تصعيدية فورية؛ يوصى بالاحتفاظ بالنتائج كمرجع تحليلي فقط.")
+        recs_en.append("No immediate escalatory action is recommended; keep the results as an analytical reference only.")
+
+    return {
+        "items_ar": recs_ar,
+        "items_en": recs_en
+    }
 
 
 def save_analysis_report(analysis_result, case_id, base_cases_dir="Cases"):
