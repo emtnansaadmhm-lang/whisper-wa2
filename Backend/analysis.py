@@ -55,9 +55,10 @@ def analyze_whatsapp_data(messages, case_id):
         keywords = extract_keywords(normalized)
         flags = build_flags(urls, numbers, keywords, normalized)
         flow = detect_suspicious_flow(normalized, urls, numbers, keywords)
-        intents = detect_message_intents(normalized)
         top_suspicious_message = get_top_suspicious_message(normalized)
-        recommendations = build_recommendations(urls, numbers, keywords, normalized, flow, intents, top_suspicious_message)
+        recommendations = build_recommendations(
+            urls, numbers, keywords, normalized, flow, top_suspicious_message
+        )
 
         return {
             "ok": True,
@@ -66,7 +67,6 @@ def analyze_whatsapp_data(messages, case_id):
             "activity": activity,
             "flags": flags,
             "flow": flow,
-            "intents": intents,
             "top_suspicious_message": top_suspicious_message,
             "recommendations": recommendations,
             "urls": urls,
@@ -171,6 +171,84 @@ def build_summary(messages):
     }
 
 
+def clean_contact_label(value):
+    value = (value or "").strip()
+    if not value:
+        return "Unknown"
+
+    value = value.replace("@s.whatsapp.net", "")
+    value = value.replace("@g.us", "")
+    return value
+
+
+def get_contact_label(msg):
+    contact_name = clean_contact_label(msg.get("contact_name", ""))
+    remote_jid = clean_contact_label(msg.get("remote_jid", ""))
+
+    if contact_name and contact_name != "Unknown":
+        return contact_name
+    if remote_jid and remote_jid != "Unknown":
+        return remote_jid
+    return "Unknown"
+
+
+def get_most_contacted(messages):
+    counter = Counter()
+
+    for msg in messages:
+        label = get_contact_label(msg)
+        counter[label] += 1
+
+    if not counter:
+        return None
+
+    value, count = counter.most_common(1)[0]
+    return {
+        "id": "most_contacted",
+        "value": value,
+        "value_ar": value,
+        "value_en": value,
+        "count": count
+    }
+
+
+def get_most_active_chat(messages):
+    counter = Counter()
+
+    for msg in messages:
+        label = get_contact_label(msg)
+        counter[label] += 1
+
+    if not counter:
+        return None
+
+    value, count = counter.most_common(1)[0]
+    return {
+        "id": "most_active",
+        "value": value,
+        "value_ar": value,
+        "value_en": value,
+        "count": count
+    }
+
+
+def get_most_recent_chat(messages):
+    dated_messages = [m for m in messages if m["dt_obj"] is not None]
+    if not dated_messages:
+        return None
+
+    latest = max(dated_messages, key=lambda x: x["dt_obj"])
+    value = get_contact_label(latest)
+
+    return {
+        "id": "most_recent",
+        "value": value,
+        "value_ar": value,
+        "value_en": value,
+        "datetime": latest.get("datetime") or "-"
+    }
+
+
 def build_activity(messages):
     datetimes = [m["dt_obj"] for m in messages if m["dt_obj"] is not None]
 
@@ -198,7 +276,21 @@ def build_activity(messages):
     sent_ratio = round((sent / total) * 100)
     recv_ratio = round((received / total) * 100)
 
-    return [
+    activity_items = []
+
+    most_contacted = get_most_contacted(messages)
+    if most_contacted:
+        activity_items.append(most_contacted)
+
+    most_active = get_most_active_chat(messages)
+    if most_active:
+        activity_items.append(most_active)
+
+    most_recent = get_most_recent_chat(messages)
+    if most_recent:
+        activity_items.append(most_recent)
+
+    activity_items.extend([
         {
             "id": "peak_hour",
             "value": peak_hour,
@@ -223,7 +315,9 @@ def build_activity(messages):
             "value_ar": f"{sent_ratio}% / {recv_ratio}%",
             "value_en": f"{sent_ratio}% / {recv_ratio}%"
         }
-    ]
+    ])
+
+    return activity_items
 
 
 def extract_urls(messages):
@@ -337,7 +431,9 @@ def build_flags(urls, numbers, keywords, messages):
     has_otp = any(item.get("type") == "otp" for item in numbers)
 
     keyword_set = {k["keyword"].lower() for k in keywords}
-    has_sensitive_keywords = bool(keyword_set.intersection({w.lower() for w in VERIFICATION_TERMS.union(FINANCIAL_TERMS)}))
+    has_sensitive_keywords = bool(
+        keyword_set.intersection({w.lower() for w in VERIFICATION_TERMS.union(FINANCIAL_TERMS)})
+    )
 
     high_inbound_ratio = False
     if total > 0:
@@ -464,72 +560,21 @@ def detect_suspicious_flow(messages, urls, numbers, keywords):
         return {
             "level": "warn",
             "text_en": "Potentially suspicious flow detected: external link with financial-related language.",
-            "text_ar": "تم رصد تسلسل قد يكون مشبوهاً: رابط خارجي مع عبارات مالية أو تحويلات.",
+            "text_ar": "تم رصد تسلسل قد يكون مشبوهاً: رابط خارجي مع عبارات مالية أو بنكية.",
         }
 
     return None
 
 
-def detect_message_intents(messages):
-    verification_count = 0
-    financial_count = 0
-    urgent_count = 0
-
-    for msg in messages:
-        text = msg["text"].lower()
-
-        if any(term.lower() in text for term in VERIFICATION_TERMS):
-            verification_count += 1
-
-        if any(term.lower() in text for term in FINANCIAL_TERMS):
-            financial_count += 1
-
-        if any(term.lower() in text for term in URGENT_TERMS):
-            urgent_count += 1
-
-    counts = {
-        "verification": verification_count,
-        "financial": financial_count,
-        "urgent_action": urgent_count
-    }
-
-    top_label = max(counts, key=counts.get)
-    top_value = counts[top_label]
-
-    if top_value == 0:
-        return {
-            "primary_intent": "normal",
-            "label_ar": "محتوى اعتيادي",
-            "label_en": "Normal content",
-            "counts": counts
-        }
-
-    labels_ar = {
-        "verification": "محتوى مرتبط بالتحقق",
-        "financial": "محتوى مرتبط بالمعاملات",
-        "urgent_action": "محتوى يتضمن استعجالاً"
-    }
-
-    labels_en = {
-        "verification": "Verification-related content",
-        "financial": "Financial-related content",
-        "urgent_action": "Urgent-action content"
-    }
-
-    return {
-        "primary_intent": top_label,
-        "label_ar": labels_ar[top_label],
-        "label_en": labels_en[top_label],
-        "counts": counts
-    }
-
-
 def get_top_suspicious_message(messages):
-    best_score = 0
     best_msg = None
+    best_score = 0
 
     for msg in messages:
-        text = msg["text"]
+        text = (msg.get("text") or "").strip()
+        if not text:
+            continue
+
         text_lower = text.lower()
         score = 0
 
@@ -569,7 +614,7 @@ def get_top_suspicious_message(messages):
     }
 
 
-def build_recommendations(urls, numbers, keywords, messages, flow, intents, top_suspicious_message):
+def build_recommendations(urls, numbers, keywords, messages, flow, top_suspicious_message):
     recs_ar = []
     recs_en = []
 
