@@ -143,6 +143,8 @@
     .stat .sub{
       color: rgba(255,255,255,0.75);
       font-size: 0.82rem;
+      white-space: pre-line;
+      line-height: 1.7;
     }
 
     .list{
@@ -216,26 +218,27 @@
     @media(max-width: 980px){
       .col-6{ grid-column: span 12; }
     }
+
     /* ===== Cyber Scrollbar (Soft Version) ===== */
-::-webkit-scrollbar {
-  width: 10px;
-}
+    ::-webkit-scrollbar {
+      width: 10px;
+    }
 
-::-webkit-scrollbar-track {
-  background: rgba(20, 40, 30, 0.25);
-  border-radius: 10px;
-}
+    ::-webkit-scrollbar-track {
+      background: rgba(20, 40, 30, 0.25);
+      border-radius: 10px;
+    }
 
-::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #4da96a, #1c4d32);
-  border-radius: 10px;
-  box-shadow: 0 0 4px rgba(63, 155, 95, 0.4); /* أخف بكثير */
-}
+    ::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, #4da96a, #1c4d32);
+      border-radius: 10px;
+      box-shadow: 0 0 4px rgba(63, 155, 95, 0.4);
+    }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #6fcf8f;
-  box-shadow: 0 0 6px rgba(63, 155, 95, 0.5); /* خفيف وقت الهوفر */
-}
+    ::-webkit-scrollbar-thumb:hover {
+      background: #6fcf8f;
+      box-shadow: 0 0 6px rgba(63, 155, 95, 0.5);
+    }
   </style>
 </head>
 
@@ -342,12 +345,14 @@
         s_total: "عدد الرسائل",
         s_first: "أول تواصل",
         s_last: "آخر تواصل",
-        s_artifacts: "Artifacts",
+        s_summary: "Analysis Summary",
         s_sent: "مرسل",
         s_recv: "مستلم",
         times: "مرة",
         links: "روابط",
         numbers: "أرقام",
+        emails: "Emails",
+        keywords: "Keywords",
         hits: "مرات الظهور",
         a_most_contacted: "أكثر جهة تواصل",
         a_most_active: "أكثر محادثة نشاطًا",
@@ -382,12 +387,14 @@
         s_total: "Total Messages",
         s_first: "First Contact",
         s_last: "Last Contact",
-        s_artifacts: "Artifacts",
+        s_summary: "Analysis Summary",
         s_sent: "Sent",
         s_recv: "Received",
         times: "times",
         links: "URLs",
         numbers: "Numbers",
+        emails: "Emails",
+        keywords: "Keywords",
         hits: "Occurrences",
         a_most_contacted: "Most Contacted",
         a_most_active: "Most Active Chat",
@@ -417,6 +424,7 @@
         last_contact: "-",
         urls_count: 0,
         numbers_count: 0,
+        emails_count: 0,
         keyword_hits_total: 0
       },
       activity: [],
@@ -441,11 +449,26 @@
       const firstVal = s.first_contact ? String(s.first_contact).split(" ")[0] : "-";
       const lastVal = s.last_contact ? String(s.last_contact).split(" ")[0] : "-";
 
+      const summaryLines = [
+        s.numbers_count ? `• ${s.numbers_count} ${t.numbers}` : "",
+        s.emails_count ? `• ${s.emails_count} ${t.emails}` : "",
+        s.keyword_hits_total ? `• ${s.keyword_hits_total} ${t.keywords}` : ""
+      ].filter(Boolean).join("\n");
+
       const cards = [
         { label: t.s_total, value: s.total_messages ?? 0, sub: `${t.s_sent}: ${s.sent ?? 0} | ${t.s_recv}: ${s.received ?? 0}` },
         { label: t.s_first, value: firstVal, sub: s.first_contact || "-" },
         { label: t.s_last, value: lastVal, sub: s.last_contact || "-" },
-        { label: t.s_artifacts, value: `${s.urls_count ?? 0} ${t.links}`, sub: `${s.numbers_count ?? 0} ${t.numbers} | ${s.keyword_hits_total ?? 0} ${t.hits}` }
+   {
+  label: t.s_summary,
+  value: "",
+  sub: [
+    s.urls_count ? `• ${s.urls_count} URLs` : "",
+    s.numbers_count ? `• ${s.numbers_count} Numbers` : "",
+    s.emails_count ? `• ${s.emails_count} Emails` : "",
+    s.keyword_hits_total ? `• ${s.keyword_hits_total} Keywords` : ""
+  ].filter(Boolean).join("<br>")
+}
       ];
 
       cards.forEach(c=>{
@@ -454,7 +477,7 @@
         div.innerHTML = `
           <div class="label">${c.label}</div>
           <div class="value">${c.value}</div>
-          <div class="sub">${c.sub}</div>
+          <div class="sub">${c.sub || ""}</div>
         `;
         wrap.appendChild(div);
       });
@@ -738,6 +761,7 @@
       raw.summary.last_contact = summary.last_contact ?? summary.last_message_time ?? data.last_contact ?? "-";
       raw.summary.urls_count = summary.urls_count ?? ((data.urls || data.extracted_urls || []).length) ?? 0;
       raw.summary.numbers_count = summary.numbers_count ?? ((data.numbers || data.extracted_numbers || []).length) ?? 0;
+      raw.summary.emails_count = summary.emails_count ?? ((data.emails || data.extracted_emails || []).length) ?? 0;
       raw.summary.keyword_hits_total = summary.keyword_hits_total ?? summary.keywords_total ?? 0;
 
       raw.activity = data.activity || data.activity_pattern || [];
