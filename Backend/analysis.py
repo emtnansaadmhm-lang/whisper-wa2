@@ -157,6 +157,7 @@ def build_summary(messages):
     urls = extract_urls(messages)
     numbers = extract_numbers(messages)
     keywords = extract_keywords(messages)
+    non_saudi_count = sum(1 for n in numbers if n.get("is_non_saudi"))
 
     return {
         "total_messages": total,
@@ -166,6 +167,7 @@ def build_summary(messages):
         "last_contact": last_contact,
         "urls_count": len(urls),
         "numbers_count": len(numbers),
+        "non_saudi_numbers_count": non_saudi_count,
         "keyword_hits_total": sum(k["hits"] for k in keywords)
     }
 
@@ -356,14 +358,17 @@ def extract_numbers(messages):
             if len(value) < 7:
                 continue
 
+            is_non_saudi = not is_saudi_number(value)
+
             if value not in number_map:
                 number_map[value] = {
-                    "value": value,
-                    "type": "phone",
-                    "context": "Phone number mentioned in message",
-                    "context_ar": "رقم هاتف مذكور داخل رسالة",
-                    "context_en": "Phone number mentioned in message",
-                    "count": 0
+            "value": value,
+            "type": "foreign_contact" if is_non_saudi else "phone",
+            "is_non_saudi": is_non_saudi,
+            "context": "Foreign number contacted" if is_non_saudi else "Phone number mentioned in message",
+            "context_ar": "رقم أجنبي تم التواصل معه" if is_non_saudi else "رقم هاتف مذكور داخل رسالة",
+            "context_en": "Foreign number contacted" if is_non_saudi else "Phone number mentioned in message",
+            "count": 0
                 }
             number_map[value]["count"] += 1
 
@@ -386,10 +391,28 @@ def extract_numbers(messages):
     items.sort(key=lambda x: x["count"], reverse=True)
     return items[:20]
 
-
 def clean_number(value):
     return re.sub(r"[^\d+]", "", value or "").strip()
 
+
+def normalize_phone_digits(value):
+    value = clean_number(value)
+    value = value.replace("+", "")
+
+    if value.startswith("00"):
+        value = value[2:]
+
+    return value
+
+
+def is_saudi_number(value):
+    digits = normalize_phone_digits(value)
+    return digits.startswith("966")
+
+
+def is_valid_phone_number(value):
+    digits = normalize_phone_digits(value)
+    return digits.isdigit() and 8 <= len(digits) <= 15
 
 def extract_keywords(messages):
     hits = defaultdict(lambda: {"hits": 0, "examples": []})
@@ -435,7 +458,7 @@ def build_flags(urls, numbers, keywords, messages):
 
     has_external_urls = len(urls) > 0
     has_otp = any(item.get("type") == "otp" for item in numbers)
-
+    has_non_saudi = any(item.get("is_non_saudi") for item in numbers)
     keyword_set = {k["keyword"].lower() for k in keywords}
     has_sensitive_keywords = bool(
         keyword_set.intersection({w.lower() for w in VERIFICATION_TERMS.union(FINANCIAL_TERMS)})
@@ -517,6 +540,18 @@ def build_flags(urls, numbers, keywords, messages):
             "desc_ar": "وجود روابط مع أكواد تحقق وكلمات حساسة قد يشير إلى محاولة تصيد أو هندسة اجتماعية.",
             "desc_en": "The presence of links, verification codes, and sensitive keywords may indicate phishing or social engineering activity."
         })
+
+        if has_non_saudi:
+            flags.append({
+        "level": "warn",
+        "title": "Non-Saudi number contacted",
+        "title_ar": "تم التواصل مع رقم غير سعودي",
+        "title_en": "Non-Saudi number contacted",
+        "description": "A foreign phone number was identified.",
+        "desc": "A foreign phone number was identified.",
+        "desc_ar": "تم رصد رقم غير سعودي ضمن المحادثة.",
+        "desc_en": "A foreign phone number was identified."
+    })
 
     if not flags:
         flags.append({
