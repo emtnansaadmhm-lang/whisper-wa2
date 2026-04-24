@@ -5,6 +5,7 @@ Extract messages from decrypted WhatsApp database
 
 import sqlite3
 import os
+import re
 from datetime import datetime
 
 
@@ -31,8 +32,8 @@ def parse_whatsapp_db(
         tables = get_tables(cursor)
 
         message_table = pick_first_existing(tables, [
-            "messages",
             "message",
+            "messages",
             "chat_messages"
         ])
 
@@ -44,8 +45,9 @@ def parse_whatsapp_db(
                 "tables": tables
             }
 
-        messages = extract_messages(cursor, message_table)
+        messages = extract_messages(cursor, message_table, tables)
         contacts = extract_contacts(cursor, tables)
+
         conn.close()
 
         messages_with_contacts = enrich_messages_with_contacts(messages, contacts)
@@ -88,25 +90,144 @@ def pick_first_existing(tables, candidates):
     return None
 
 
-def extract_messages(cursor: sqlite3.Cursor, table_name: str):
+def clean_number(value):
+    if value is None:
+        return "Unknown"
+
+    value = str(value).strip()
+
+    if value == "status@broadcast":
+        return "Status"
+
+    value = value.replace("@s.whatsapp.net", "")
+    value = value.replace("@g.us", "")
+    value = value.replace("@lid", "")
+
+    match = re.search(r"\d{8,15}", value)
+    if match:
+        return match.group(0)
+
+    return value
+
+
+def make_jid_value(row):
+    raw = row["raw_string"] if "raw_string" in row.keys() else None
+    user = row["user"] if "user" in row.keys() else None
+    server = row["server"] if "server" in row.keys() else None
+
+    if raw:
+        return raw
+    if user and server:
+        return f"{user}@{server}"
+    if user:
+        return str(user)
+    return None
+
+
+def build_jid_maps(cursor, tables):
+    jid_by_id = {}
+
+    if "jid" in tables:
+        jid_cols = get_columns(cursor, "jid")
+
+        selected_cols = ["_id"]
+
+        if "user" in jid_cols:
+            selected_cols.append("user")
+        else:
+            selected_cols.append("NULL AS user")
+
+        if "server" in jid_cols:
+            selected_cols.append("server")
+        else:
+            selected_cols.append("NULL AS server")
+
+        if "raw_string" in jid_cols:
+            selected_cols.append("raw_string")
+        else:
+            selected_cols.append("NULL AS raw_string")
+
+        cursor.execute(f"SELECT {', '.join(selected_cols)} FROM jid")
+
+        for r in cursor.fetchall():
+            value = make_jid_value(r)
+            if value:
+                jid_by_id[str(r["_id"])] = value
+
+    # تحويل LID إلى رقم واتساب الحقيقي من jid_map
+    if "jid_map" in tables and "jid" in tables:
+        try:
+            cursor.execute("""
+                SELECT
+                    jm.lid_row_id AS lid_id,
+                    j.user AS user,
+                    j.server AS server,
+                    j.raw_string AS raw_string
+                FROM jid_map jm
+                JOIN jid j ON jm.jid_row_id = j._id
+            """)
+
+            for r in cursor.fetchall():
+                real_value = make_jid_value(r)
+                if real_value:
+                    jid_by_id[str(r["lid_id"])] = real_value
+
+        except sqlite3.Error:
+            pass
+
+    return jid_by_id
+
+
+def build_chat_map(cursor, tables, jid_by_id):
+    chat_by_id = {}
+
+    if "chat" not in tables:
+        return chat_by_id
+
+    chat_cols = get_columns(cursor, "chat")
+
+    if "_id" in chat_cols and "jid_row_id" in chat_cols:
+        cursor.execute("SELECT _id, jid_row_id FROM chat")
+        for r in cursor.fetchall():
+            chat_id = str(r["_id"])
+            jid_id = str(r["jid_row_id"])
+            chat_by_id[chat_id] = jid_by_id.get(jid_id, jid_id)
+
+    if "_id" in chat_cols and "subject" in chat_cols:
+        cursor.execute("""
+            SELECT _id, subject
+            FROM chat
+            WHERE subject IS NOT NULL AND TRIM(subject) != ''
+        """)
+        for r in cursor.fetchall():
+            chat_id = str(r["_id"])
+            if chat_id not in chat_by_id:
+                chat_by_id[chat_id] = r["subject"]
+
+    return chat_by_id
+
+
+def extract_messages(cursor: sqlite3.Cursor, table_name: str, tables):
     cols = get_columns(cursor, table_name)
 
     id_col = "_id" if "_id" in cols else ("id" if "id" in cols else None)
 
-    jid_col = None
-    for c in ["key_remote_jid", "chat_row_id", "jid_row_id", "remote_jid", "jid"]:
+    chat_col = None
+    for c in ["chat_row_id", "key_remote_jid", "remote_jid", "jid"]:
         if c in cols:
-            jid_col = c
+            chat_col = c
             break
 
+    sender_jid_col = "sender_jid_row_id" if "sender_jid_row_id" in cols else None
+
     from_me_col = None
-    for c in ["key_from_me", "from_me"]:
+    for c in ["from_me", "key_from_me"]:
         if c in cols:
             from_me_col = c
             break
 
     text_col = None
-    for c in ["data", "text_data", "body", "message", "content"]:
+    for c in ["text_data", "data", "body", "message", "content"]:
         if c in cols:
             text_col = c
             break
@@ -128,7 +249,8 @@ def extract_messages(cursor: sqlite3.Cursor, table_name: str):
 
     selected = []
     selected.append(f"{id_col} as msg_id" if id_col else "NULL as msg_id")
-    selected.append(f"{jid_col} as remote_jid" if jid_col else "NULL as remote_jid")
+    selected.append(f"{chat_col} as chat_ref" if chat_col else "NULL as chat_ref")
+    selected.append(f"{sender_jid_col} as sender_jid_ref" if sender_jid_col else "NULL as sender_jid_ref")
     selected.append(f"{from_me_col} as from_me" if from_me_col else "0 as from_me")
     selected.append(f"{text_col} as message_text")
     selected.append(f"{ts_col} as timestamp" if ts_col else "NULL as timestamp")
@@ -148,19 +270,33 @@ def extract_messages(cursor: sqlite3.Cursor, table_name: str):
     """
 
     try:
+        jid_by_id = build_jid_maps(cursor, tables)
+        chat_by_id = build_chat_map(cursor, tables, jid_by_id)
+
         cursor.execute(query)
         rows = cursor.fetchall()
 
         messages = []
+
         for row in rows:
-            remote_jid = row["remote_jid"]
-            if remote_jid is None:
-                remote_jid = "unknown"
+            chat_ref = str(row["chat_ref"]) if row["chat_ref"] is not None else "unknown"
+            sender_jid_ref = str(row["sender_jid_ref"]) if row["sender_jid_ref"] is not None else None
+            from_me = bool(row["from_me"])
+
+            chat_jid = chat_by_id.get(chat_ref, chat_ref)
+            chat_number = clean_number(chat_jid)
+
+            sender_jid = jid_by_id.get(sender_jid_ref) if sender_jid_ref else None
+
+            if not from_me and sender_jid:
+                user_number = clean_number(sender_jid)
+            else:
+                user_number = chat_number
 
             msg = {
                 "id": row["msg_id"],
-                "remote_jid": str(remote_jid),
-                "from_me": bool(row["from_me"]),
+                "remote_jid": str(chat_jid),
+                "from_me": from_me,
                 "text": row["message_text"] or "",
                 "timestamp": row["timestamp"],
                 "datetime": timestamp_to_datetime(row["timestamp"]),
@@ -168,8 +304,13 @@ def extract_messages(cursor: sqlite3.Cursor, table_name: str):
                 "media_mime": row["media_mime_type"],
                 "caption": row["media_caption"],
                 "latitude": row["latitude"],
-                "longitude": row["longitude"]
+                "longitude": row["longitude"],
+
+                # هذا المهم للتحليل Activity Pattern
+                "user": user_number,
+                "contact_name": user_number
             }
+
             messages.append(msg)
 
         return messages
@@ -195,7 +336,7 @@ def extract_contacts(cursor: sqlite3.Cursor, tables):
                 jid = row["jid"]
                 contacts[jid] = {
                     "display_name": row["display_name"] or "Unknown",
-                    "given_name": row["given_name"] or "",
+                    "given_name": "",
                     "status": row["status"] or ""
                 }
 
@@ -217,6 +358,7 @@ def extract_contacts(cursor: sqlite3.Cursor, tables):
                         "given_name": "",
                         "status": ""
                     }
+
             elif "user" in jid_cols:
                 cursor.execute("SELECT _id, user FROM jid")
                 rows = cursor.fetchall()
@@ -236,14 +378,20 @@ def extract_contacts(cursor: sqlite3.Cursor, tables):
 
 def enrich_messages_with_contacts(messages, contacts):
     for msg in messages:
-        jid = str(msg["remote_jid"])
+        jid = str(msg.get("remote_jid", ""))
+
+        # لا نغطي الرقم الصحيح اللي طلعناه
+        if msg.get("user"):
+            msg["contact_name"] = msg["user"]
+            msg["contact_status"] = ""
+            continue
 
         if jid in contacts:
             msg["contact_name"] = contacts[jid]["display_name"]
             msg["contact_status"] = contacts[jid]["status"]
         else:
             phone = jid.split("@")[0] if "@" in jid else jid
-            msg["contact_name"] = format_phone_number(phone)
+            msg["contact_name"] = phone
             msg["contact_status"] = ""
 
     return messages
