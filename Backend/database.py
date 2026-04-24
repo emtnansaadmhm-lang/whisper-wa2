@@ -185,10 +185,6 @@ def cleanup_old_requests(days=30):
     return count
 
 
-# =========================
-# CASE HELPERS
-# =========================
-
 def _extract_case_number(case_name):
     try:
         if not case_name:
@@ -264,14 +260,13 @@ def generate_next_case_id(base_cases_dir="Cases"):
     """
     max_num = 0
 
-    # Check DB
+    
     db_cases = Case.query.all()
     for c in db_cases:
         n = _extract_case_number(c.case_name)
         if n is not None and n > max_num:
             max_num = n
 
-    # Check folders
     if os.path.exists(base_cases_dir):
         for name in os.listdir(base_cases_dir):
             full_path = os.path.join(base_cases_dir, name)
@@ -290,9 +285,7 @@ def create_next_case(base_cases_dir="Cases"):
     """
     case_name = generate_next_case_id(base_cases_dir=base_cases_dir)
     return create_case_record(case_name)
-# =========================
-# CASE INVESTIGATORS HELPERS
-# =========================
+
 
 def assign_case_owner(case_name, user_id):
     if not user_id:
@@ -365,5 +358,46 @@ def add_user_to_case(case_name, user_id):
         user_id=user_id,
         is_owner=False
     ))
+    db.session.commit()
+    return True
+
+def get_investigators_details(case_name):
+    """
+    جلب تفاصيل المحققين (الاسم، الآي دي) المرتبطين بقضية معينة
+    """
+    links = CaseInvestigator.query.filter_by(case_name=case_name).all()
+    users_info = []
+    
+    for link in links:
+        user = get_user_by_id(link.user_id) 
+        if user:
+            users_info.append({
+                "id": user.id,
+                "name": user.name,
+                "email": user.email,
+                "is_owner": link.is_owner
+            })
+    return users_info
+
+def remove_user_from_case(case_name, user_id):
+    """
+    حذف ارتباط محقق بقضية (لا يمكن حذف المالك الأساسي)
+    """
+    if not case_name or not user_id:
+        return False
+
+    link = CaseInvestigator.query.filter_by(
+        case_name=case_name,
+        user_id=user_id
+    ).first()
+
+    if not link:
+        return False
+
+
+    if link.is_owner:
+        return False
+
+    db.session.delete(link)
     db.session.commit()
     return True
