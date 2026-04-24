@@ -41,10 +41,7 @@ URGENT_TERMS = {
 def analyze_whatsapp_data(messages, case_id):
     try:
         if not messages:
-            return {
-                "ok": False,
-                "error": "No messages to analyze"
-            }
+            return {"ok": False, "error": "No messages to analyze"}
 
         normalized = normalize_messages(messages)
 
@@ -76,10 +73,7 @@ def analyze_whatsapp_data(messages, case_id):
         }
 
     except Exception as e:
-        return {
-            "ok": False,
-            "error": str(e)
-        }
+        return {"ok": False, "error": str(e)}
 
 
 def normalize_messages(messages):
@@ -117,6 +111,11 @@ def normalize_messages(messages):
             "datetime": dt_str,
             "dt_obj": parsed_dt,
             "from_me": is_sent,
+
+            # مهم: هذا الرقم الصحيح القادم من messages_api
+            "user": msg.get("user", ""),
+
+            # fallback فقط
             "contact_name": msg.get("contact_name", ""),
             "remote_jid": msg.get("remote_jid", ""),
         })
@@ -176,19 +175,50 @@ def clean_contact_label(value):
     if not value:
         return "Unknown"
 
+    if value == "status@broadcast":
+        return "Status"
+
     value = value.replace("@s.whatsapp.net", "")
     value = value.replace("@g.us", "")
+    value = value.replace("@lid", "")
+
+    match = re.search(r"\d{8,15}", value)
+    if match:
+        return match.group(0)
+
     return value
 
 
-def get_contact_label(msg):
-    contact_name = clean_contact_label(msg.get("contact_name", ""))
-    remote_jid = clean_contact_label(msg.get("remote_jid", ""))
+def is_internal_weird_label(value):
+    value = str(value or "").strip()
+    return value.isdigit() and len(value) > 15
 
-    if contact_name and contact_name != "Unknown":
+
+def get_contact_label(msg):
+    user_raw = (msg.get("user", "") or "").strip()
+    contact_name_raw = (msg.get("contact_name", "") or "").strip()
+    remote_jid_raw = (msg.get("remote_jid", "") or "").strip()
+
+    user_clean = clean_contact_label(user_raw)
+    contact_name = clean_contact_label(contact_name_raw)
+    remote_jid = clean_contact_label(remote_jid_raw)
+
+    # الأولوية للرقم الحقيقي القادم من messages_api
+    if user_clean and user_clean != "Unknown" and not is_internal_weird_label(user_clean):
+        return user_clean
+
+    if re.fullmatch(r"\d{8,15}", contact_name) and not is_internal_weird_label(contact_name):
         return contact_name
-    if remote_jid and remote_jid != "Unknown":
+
+    if re.fullmatch(r"\d{8,15}", remote_jid) and not is_internal_weird_label(remote_jid):
         return remote_jid
+
+    if contact_name and contact_name != "Unknown" and not is_internal_weird_label(contact_name):
+        return contact_name
+
+    if remote_jid and remote_jid != "Unknown" and not is_internal_weird_label(remote_jid):
+        return remote_jid
+
     return "Unknown"
 
 
@@ -291,30 +321,10 @@ def build_activity(messages):
         activity_items.append(most_recent)
 
     activity_items.extend([
-        {
-            "id": "peak_hour",
-            "value": peak_hour,
-            "value_ar": peak_hour,
-            "value_en": peak_hour
-        },
-        {
-            "id": "peak_day",
-            "value": peak_day,
-            "value_ar": peak_day,
-            "value_en": peak_day
-        },
-        {
-            "id": "duration",
-            "value": f"{duration_days} days",
-            "value_ar": f"{duration_days} يوم",
-            "value_en": f"{duration_days} days"
-        },
-        {
-            "id": "ratio",
-            "value": f"{sent_ratio}% / {recv_ratio}%",
-            "value_ar": f"{sent_ratio}% / {recv_ratio}%",
-            "value_en": f"{sent_ratio}% / {recv_ratio}%"
-        }
+        {"id": "peak_hour", "value": peak_hour, "value_ar": peak_hour, "value_en": peak_hour},
+        {"id": "peak_day", "value": peak_day, "value_ar": peak_day, "value_en": peak_day},
+        {"id": "duration", "value": f"{duration_days} days", "value_ar": f"{duration_days} يوم", "value_en": f"{duration_days} days"},
+        {"id": "ratio", "value": f"{sent_ratio}% / {recv_ratio}%", "value_ar": f"{sent_ratio}% / {recv_ratio}%", "value_en": f"{sent_ratio}% / {recv_ratio}%"}
     ])
 
     return activity_items
@@ -329,10 +339,7 @@ def extract_urls(messages):
         for u in found:
             counter[u] += 1
 
-    return [
-        {"url": url, "count": count}
-        for url, count in counter.most_common(20)
-    ]
+    return [{"url": url, "count": count} for url, count in counter.most_common(20)]
 
 
 def extract_numbers(messages):
@@ -381,12 +388,11 @@ def extract_numbers(messages):
 
 
 def clean_number(value):
-    return re.sub(r"[^\d+]", "", value).strip()
+    return re.sub(r"[^\d+]", "", value or "").strip()
 
 
 def extract_keywords(messages):
     hits = defaultdict(lambda: {"hits": 0, "examples": []})
-
     all_keywords = KEYWORDS + AR_KEYWORDS
 
     for msg in messages:
