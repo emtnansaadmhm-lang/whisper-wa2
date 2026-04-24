@@ -345,14 +345,14 @@
         s_total: "عدد الرسائل",
         s_first: "أول تواصل",
         s_last: "آخر تواصل",
-        s_summary: "Analysis Summary",
+        s_summary: "ملخص التحليل",
         s_sent: "مرسل",
         s_recv: "مستلم",
         times: "مرة",
         links: "روابط",
         numbers: "أرقام",
-        emails: "Emails",
-        keywords: "Keywords",
+        emails: "بريد إلكتروني",
+        keywords: "كلمات",
         hits: "مرات الظهور",
         a_most_contacted: "أكثر جهة تواصل",
         a_most_active: "أكثر محادثة نشاطًا",
@@ -462,12 +462,12 @@
    {
   label: t.s_summary,
   value: "",
-  sub: [
-    s.urls_count ? `• ${s.urls_count} URLs` : "",
-    s.numbers_count ? `• ${s.numbers_count} Numbers` : "",
-    s.emails_count ? `• ${s.emails_count} Emails` : "",
-    s.keyword_hits_total ? `• ${s.keyword_hits_total} Keywords` : ""
-  ].filter(Boolean).join("<br>")
+sub: [
+  s.urls_count ? `• ${s.urls_count} ${t.links}` : "",
+  s.numbers_count ? `• ${s.numbers_count} ${t.numbers}` : "",
+  s.emails_count ? `• ${s.emails_count} ${t.emails}` : "",
+  s.keyword_hits_total ? `• ${s.keyword_hits_total} ${t.keywords}` : ""
+].filter(Boolean).join("<br>")
 }
       ];
 
