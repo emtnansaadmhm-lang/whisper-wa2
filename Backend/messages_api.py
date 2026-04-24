@@ -8,13 +8,7 @@ BASE_DIR = os.path.dirname(__file__)
 
 
 def get_db_path(case_id: str) -> str:
-    return os.path.join(
-        BASE_DIR,
-        "Cases",
-        case_id,
-        "Decrypted",
-        "msgstore_decrypted.db"
-    )
+    return os.path.join(BASE_DIR, "Cases", case_id, "Decrypted", "msgstore_decrypted.db")
 
 
 def get_tables(cur):
@@ -33,6 +27,7 @@ def pick_first_existing(tables, candidates):
             return c
     return None
 
+
 def clean_number(value):
     if value is None:
         return "Unknown"
@@ -45,6 +40,9 @@ def clean_number(value):
     if "@s.whatsapp.net" in value:
         return value.split("@")[0]
 
+    if "@lid" in value:
+        return value.split("@")[0]
+
     if "@g.us" in value:
         return value.split("@")[0]
 
@@ -54,6 +52,26 @@ def clean_number(value):
         return match.group(0)
 
     return value
+
+
+def make_jid_value(row):
+    raw = row["raw_string"] if "raw_string" in row.keys() else None
+    user = row["user"] if "user" in row.keys() else None
+    server = row["server"] if "server" in row.keys() else None
+
+    if raw:
+        return raw
+    if user and server:
+        return f"{user}@{server}"
+    if user:
+        return str(user)
+    return None
+
+
+def is_lid(value):
+    return "@lid" in str(value or "")
+
+
 @messages_api.route("/api/messages/<case_id>", methods=["GET"])
 def get_messages(case_id):
     db_path = get_db_path(case_id)
@@ -72,12 +90,7 @@ def get_messages(case_id):
 
         tables = get_tables(cur)
 
-        # أشهر أسماء الجداول باختلاف نسخ واتساب
-        message_table = pick_first_existing(tables, [
-            "messages",
-            "message",
-            "chat_messages"
-        ])
+        message_table = pick_first_existing(tables, ["message", "messages", "chat_messages"])
 
         if not message_table:
             conn.close()
@@ -89,32 +102,13 @@ def get_messages(case_id):
 
         cols = get_columns(cur, message_table)
 
-        # أعمدة شائعة
         id_col = "_id" if "_id" in cols else ("id" if "id" in cols else None)
         key_id_col = "key_id" if "key_id" in cols else None
-        chat_col = None
-        for c in ["key_remote_jid", "chat_row_id", "jid_row_id", "remote_jid", "jid"]:
-            if c in cols:
-                chat_col = c
-                break
-
-        text_col = None
-        for c in ["data", "text_data", "body", "message", "content"]:
-            if c in cols:
-                text_col = c
-                break
-
-        ts_col = None
-        for c in ["timestamp", "message_date", "sort_timestamp", "received_timestamp", "sent_timestamp"]:
-            if c in cols:
-                ts_col = c
-                break
-
-        from_me_col = None
-        for c in ["key_from_me", "from_me"]:
-            if c in cols:
-                from_me_col = c
-                break
+        chat_col = "chat_row_id" if "chat_row_id" in cols else None
+        sender_jid_col = "sender_jid_row_id" if "sender_jid_row_id" in cols else None
+        text_col = "text_data" if "text_data" in cols else ("data" if "data" in cols else None)
+        ts_col = "timestamp" if "timestamp" in cols else None
+        from_me_col = "from_me" if "from_me" in cols else None
 
         if not text_col:
             conn.close()
@@ -125,15 +119,15 @@ def get_messages(case_id):
                 "columns": cols
             }), 400
 
-        selected_cols = []
-        selected_cols.append(f"{id_col} AS row_id" if id_col else "NULL AS row_id")
-        selected_cols.append(f"{key_id_col} AS key_id" if key_id_col else "NULL AS key_id")
-        selected_cols.append(f"{chat_col} AS chat_ref" if chat_col else "NULL AS chat_ref")
-        selected_cols.append(f"{text_col} AS msg_text")
-        selected_cols.append(f"{ts_col} AS msg_ts" if ts_col else "NULL AS msg_ts")
-        selected_cols.append(f"{from_me_col} AS from_me" if from_me_col else "0 AS from_me")
-
-        where_clause = "msg_text IS NOT NULL AND TRIM(msg_text) != ''"
+        selected_cols = [
+            f"{id_col} AS row_id" if id_col else "NULL AS row_id",
+            f"{key_id_col} AS key_id" if key_id_col else "NULL AS key_id",
+            f"{chat_col} AS chat_ref" if chat_col else "NULL AS chat_ref",
+            f"{sender_jid_col} AS sender_jid_ref" if sender_jid_col else "NULL AS sender_jid_ref",
+            f"{text_col} AS msg_text",
+            f"{ts_col} AS msg_ts" if ts_col else "NULL AS msg_ts",
+            f"{from_me_col} AS from_me" if from_me_col else "0 AS from_me"
+        ]
 
         query = f"""
             SELECT {", ".join(selected_cols)}
@@ -146,27 +140,51 @@ def get_messages(case_id):
         cur.execute(query)
         rows = cur.fetchall()
 
-        # محاولة ربط أسماء المحادثات إذا chat_ref عبارة عن row id
-        chat_names_by_id = {}
+        jid_by_id = {}
 
         if "jid" in tables:
-            jid_cols = get_columns(cur, "jid")
-            if "user" in jid_cols:
-                if "raw_string" in jid_cols:
-                    cur.execute("SELECT _id, COALESCE(raw_string, user) AS name FROM jid")
-                    for r in cur.fetchall():
-                        chat_names_by_id[str(r[0])] = r["name"]
-                else:
-                    cur.execute("SELECT _id, user AS name FROM jid")
-                    for r in cur.fetchall():
-                        chat_names_by_id[str(r[0])] = r["name"]
+            cur.execute("SELECT _id, user, server, raw_string FROM jid")
+            for r in cur.fetchall():
+                jid_by_id[str(r["_id"])] = make_jid_value(r)
+
+        # أهم حل: تحويل @lid إلى رقم جوال من jid_map
+        if "jid_map" in tables and "jid" in tables:
+            cur.execute("""
+                SELECT
+                    jm.lid_row_id AS lid_id,
+                    j.user AS user,
+                    j.server AS server,
+                    j.raw_string AS raw_string
+                FROM jid_map jm
+                JOIN jid j ON jm.jid_row_id = j._id
+            """)
+            for r in cur.fetchall():
+                real_phone_jid = make_jid_value(r)
+                if real_phone_jid:
+                    jid_by_id[str(r["lid_id"])] = real_phone_jid
+
+        chat_number_by_id = {}
 
         if "chat" in tables:
             chat_cols = get_columns(cur, "chat")
-            if "_id" in chat_cols and "subject" in chat_cols:
-                cur.execute("SELECT _id, subject FROM chat WHERE subject IS NOT NULL AND TRIM(subject) != ''")
+
+            if "_id" in chat_cols and "jid_row_id" in chat_cols:
+                cur.execute("SELECT _id, jid_row_id FROM chat")
                 for r in cur.fetchall():
-                    chat_names_by_id[str(r[0])] = r["subject"]
+                    chat_id = str(r["_id"])
+                    jid_id = str(r["jid_row_id"])
+                    chat_number_by_id[chat_id] = jid_by_id.get(jid_id, jid_id)
+
+            if "subject" in chat_cols:
+                cur.execute("""
+                    SELECT _id, subject
+                    FROM chat
+                    WHERE subject IS NOT NULL AND TRIM(subject) != ''
+                """)
+                for r in cur.fetchall():
+                    chat_id = str(r["_id"])
+                    if chat_id not in chat_number_by_id:
+                        chat_number_by_id[chat_id] = r["subject"]
 
         conn.close()
 
@@ -175,15 +193,28 @@ def get_messages(case_id):
         for row in rows:
             row = dict(row)
 
-            raw_chat_ref = row.get("chat_ref")
-            chat_ref = str(raw_chat_ref) if raw_chat_ref is not None else "unknown_chat"
-
-            chat_name = chat_names_by_id.get(chat_ref, chat_ref)
+            chat_ref = str(row.get("chat_ref")) if row.get("chat_ref") is not None else "unknown_chat"
+            sender_jid_ref = row.get("sender_jid_ref")
 
             msg_id = row.get("key_id") or row.get("row_id") or ""
             text = row.get("msg_text") or ""
             timestamp = row.get("msg_ts")
             from_me = int(row.get("from_me") or 0)
+
+            chat_jid = chat_number_by_id.get(chat_ref, chat_ref)
+            chat_number = clean_number(chat_jid)
+
+            if is_lid(chat_jid):
+                mapped = jid_by_id.get(str(sender_jid_ref))
+                if mapped:
+                    chat_number = clean_number(mapped)
+
+            sender_jid = jid_by_id.get(str(sender_jid_ref)) if sender_jid_ref else None
+
+            if from_me == 0 and sender_jid:
+                message_user = clean_number(sender_jid)
+            else:
+                message_user = chat_number
 
             display_time = ""
             display_datetime = ""
@@ -191,11 +222,11 @@ def get_messages(case_id):
             try:
                 if timestamp is not None:
                     ts = int(timestamp)
+                    import datetime as dt
+
                     if ts > 10_000_000_000:
-                        import datetime as dt
                         dt_obj = dt.datetime.fromtimestamp(ts / 1000)
                     else:
-                        import datetime as dt
                         dt_obj = dt.datetime.fromtimestamp(ts)
 
                     display_time = dt_obj.strftime("%H:%M")
@@ -207,8 +238,8 @@ def get_messages(case_id):
             if chat_ref not in chats_map:
                 chats_map[chat_ref] = {
                     "id": chat_ref,
-                    "number": clean_number(chat_name),
-                    "name": chat_name,
+                    "number": chat_number,
+                    "name": chat_number,
                     "last_message": text,
                     "last_time": display_time,
                     "messages": []
@@ -221,16 +252,15 @@ def get_messages(case_id):
                 "id": str(msg_id),
                 "text": text,
                 "type": "sent" if from_me == 1 else "received",
-                "datetime": display_datetime
+                "datetime": display_datetime,
+                "user": message_user
             })
-
-        chats = list(chats_map.values())
 
         return jsonify({
             "ok": True,
             "case_id": case_id,
             "source_table": message_table,
-            "chats": chats
+            "chats": list(chats_map.values())
         }), 200
 
     except Exception as e:
