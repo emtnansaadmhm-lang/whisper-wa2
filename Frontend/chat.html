@@ -411,22 +411,27 @@
       white-space: nowrap;
     }
 
-    .tags-row {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
+.tags-row {
+  display: flex;
+  gap: 6px;          /* 👈 صغّر المسافة */
+  flex-wrap: nowrap; /* 👈 صف واحد */
+  justify-content: space-between; /* 👈 يوزعهم */
+}
 
-    .tag {
-      background: rgba(95, 191, 122, 0.15);
-      padding: 5px 12px;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      color: var(--accent-glow);
-      border: 1px solid rgba(95, 191, 122, 0.3);
-      cursor: pointer;
-      transition: 0.2s;
-    }
+   .tag {
+  background: rgba(95, 191, 122, 0.15);
+  padding: 4px 8px;        /* 👈 أصغر */
+  border-radius: 16px;
+  font-size: 0.72rem;      /* 👈 أصغر خط */
+  color: var(--accent-glow);
+  border: 1px solid rgba(95, 191, 122, 0.3);
+  cursor: pointer;
+  transition: 0.2s;
+
+  flex: 1;                 /* 👈 يخليهم يتمددون */
+  text-align: center;
+  white-space: nowrap;     /* 👈 يمنع النزول */
+}
 
     .tag:hover {
       background: var(--primary-mid);
@@ -595,6 +600,34 @@
       0% { opacity: 0.15; transform: translate(-50%, -50%) scale(0.95); }
       100% { opacity: 0.35; transform: translate(-50%, -50%) scale(1.05); }
     }
+
+
+    /* ===== Professional Green Scrollbar ===== */
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(95, 191, 122, 0.85) rgba(6, 25, 16, 0.65);
+    }
+
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track {
+      background: rgba(6, 25, 16, 0.65);
+      border-radius: 999px;
+      border: 1px solid rgba(95, 191, 122, 0.12);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, rgba(95, 191, 122, 0.95), rgba(31, 95, 59, 0.95));
+      border-radius: 999px;
+      border: 2px solid rgba(6, 25, 16, 0.85);
+      box-shadow: none;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(180deg, rgba(143, 217, 168, 0.95), rgba(63, 155, 95, 0.95));
+    }
+    .msg mark.entity-hit { background: rgba(255, 210, 77, 0.95); color: #102015; padding: 0 4px; border-radius: 4px; font-weight: 800; }
+    .msg mark.url-hit { background: rgba(78, 181, 255, 0.95); color: #061724; padding: 0 4px; border-radius: 4px; font-weight: 800; }
+    .msg mark.danger-hit { background: rgba(255, 95, 95, 0.95); color: white; padding: 0 4px; border-radius: 4px; font-weight: 800; }
+    .msg mark.foreign-hit { background: rgba(185, 130, 255, 0.95); color: white; padding: 0 4px; border-radius: 4px; font-weight: 800; }
+
   </style>
 </head>
 <div class="animated-bg-logo">
@@ -654,22 +687,16 @@
                 <div class="case-subtitle" id="caseSubtitle">تحقق من قاعدة بيانات الجهاز المستهدف</div>
               </div>
             </div>
+
+            <div class="case-banner-actions">
+              <button class="btn-secondary" id="btnTeamManagement" type="button">
+                <i class="fa-solid fa-users-gear"></i>
+                <span id="txt-team-management">Team Management</span>
+              </button>
+            </div>
           </div>
 
-<div class="investigators-management-box" id="investigatorsBox" style="margin-top: 15px; background: var(--glass-bg); padding: 15px; border-radius: 12px; border: 1px solid var(--glass-border); display: none;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
-        <div style="font-size: 0.95rem; color: var(--primary-light); font-weight: bold;">
-            <i class="fa-solid fa-users-gear"></i> <span id="txt-manage-team">إدارة فريق التحقيق</span>
-        </div>
-        <button onclick="openUserPicker()" style="background: var(--primary-mid); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-family: 'Tajawal', sans-serif; font-size: 0.8rem; display: flex; align-items: center; gap: 5px; transition: 0.3s;">
-            <i class="fa-solid fa-user-plus"></i> <span id="txt-add-inv">إضافة محقق</span>
-        </button>
-    </div>
-    <div id="txt-current-inv" style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;">
-        المحققون المشاركون حالياً:
-    </div>
-    <div id="investigatorsList" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
-</div>
+
 
           <div class="search-input-wrapper">
             <i class="fa-solid fa-search"></i>
@@ -680,8 +707,11 @@
           <div class="tags-row">
             <span class="tag active-tag" data-tag="all">#All</span>
             <span class="tag" data-tag="url">#URL</span>
+            <span class="tag" data-tag="spoofing">#Spoofing</span>
+            <span class="tag" data-tag="keywords">#Suspicious Keywords</span>
+            <span class="tag" data-tag="foreign">#Foreign Numbers</span>
+            <span class="tag" data-tag="files">#Files</span>
             <span class="tag" data-tag="images">#Images</span>
-            <span class="tag" data-tag="location">#Location</span>
           </div>
         </div>
 
@@ -693,21 +723,42 @@
     </div>
   </div>
   <div class="user-picker-modal" id="userPickerModal">
-  <div class="user-picker-box">
-    <h3 id="userPickerTitle">إضافة محقق للقضية</h3>
+  <div class="user-picker-box" style="width:min(620px, 94vw);">
+    <div class="investigators-management-box" id="investigatorsBox" style="margin-top: 0; background: var(--glass-bg); padding: 15px; border-radius: 12px; border: 1px solid var(--glass-border); display: block;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
+        <div style="font-size: 0.95rem; color: var(--primary-light); font-weight: bold;">
+            <i class="fa-solid fa-users-gear"></i> <span id="txt-manage-team">إدارة فريق التحقيق</span>
+        </div>
+        <button onclick="openAddInvestigatorPanel()" style="background: var(--primary-mid); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-family: 'Tajawal', sans-serif; font-size: 0.8rem; display: flex; align-items: center; gap: 5px; transition: 0.3s;">
+            <i class="fa-solid fa-user-plus"></i> <span id="txt-add-inv">إضافة محقق</span>
+        </button>
+    </div>
+    <div id="txt-current-inv" style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;">
+        المحققون المشاركون حالياً:
+    </div>
+    <div id="investigatorsList" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
+</div>
 
-    <input
-      type="text"
-      id="userSearchInput"
-      class="user-picker-input"
-      placeholder="ابحث بالاسم أو الإيميل"
-    >
+    <div id="addInvestigatorPanel" style="display:none; margin-top:14px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.1);">
+      <h3 id="userPickerTitle">إضافة محقق للقضية</h3>
 
-    <div class="user-results" id="userResults"></div>
+      <input
+        type="text"
+        id="userSearchInput"
+        class="user-picker-input"
+        placeholder="ابحث بالاسم أو الإيميل"
+      >
 
-    <div class="user-picker-actions">
+      <div class="user-results" id="userResults"></div>
+
+      <div class="user-picker-actions">
+        <button class="btn-secondary" id="btnCancelAddUser" type="button">إلغاء</button>
+        <button class="btn-primary" id="btnConfirmAddUser" type="button">إضافة</button>
+      </div>
+    </div>
+
+    <div class="user-picker-actions" style="margin-top:12px;">
       <button class="btn-secondary" id="btnCloseUserPicker" type="button">إغلاق</button>
-      <button class="btn-primary" id="btnConfirmAddUser" type="button">إضافة</button>
     </div>
   </div>
 </div>
@@ -782,6 +833,7 @@
 
     let suggestionPool = [];
     let activeTagFilter = "all";
+    let focusedMessageId = null;
 
     const tbody = document.getElementById("reportTbody");
     const addBtn = document.getElementById("txt-add-btn");
@@ -793,12 +845,14 @@
     const suggestionsBox = document.getElementById("searchSuggestions");
     const caseTitle = document.getElementById("caseTitle");
 const caseSubtitle = document.getElementById("caseSubtitle");
-const btnAddUser = document.getElementById("btnAddUser");
+const btnTeamManagement = document.getElementById("btnTeamManagement");
 const userPickerModal = document.getElementById("userPickerModal");
 const btnCloseUserPicker = document.getElementById("btnCloseUserPicker");
+const btnCancelAddUser = document.getElementById("btnCancelAddUser");
 const btnConfirmAddUser = document.getElementById("btnConfirmAddUser");
 const userSearchInput = document.getElementById("userSearchInput");
 const userResults = document.getElementById("userResults");
+const addInvestigatorPanel = document.getElementById("addInvestigatorPanel");
 
 let selectedUserToAdd = null;
 let availableUsers = [];
@@ -883,13 +937,14 @@ let availableUsers = [];
       setText("th-num", isAr ? "الرقم" : "Number");
       setText("th-time", isAr ? "التاريخ والوقت" : "Date & Time");
       setText("th-remove", isAr ? "حذف" : "Remove");
-setText("txt-add-user", isAr ? "إضافة مستخدم" : "Add User");
-setText("userPickerTitle", isAr ? "إضافة مستخدم للقضية" : "Add User to Case");
+setText("txt-team-management", isAr ? "إدارة الفريق" : "Team Management");
+setText("userPickerTitle", isAr ? "إضافة محقق للقضية" : "Add Investigator to Case");
 
 if (userSearchInput) {
   userSearchInput.placeholder = isAr ? "ابحث بالاسم أو الإيميل" : "Search by name or email";
 }
 if (btnCloseUserPicker) btnCloseUserPicker.textContent = isAr ? "إغلاق" : "Close";
+if (btnCancelAddUser) btnCancelAddUser.textContent = isAr ? "إلغاء" : "Cancel";
 if (btnConfirmAddUser) btnConfirmAddUser.textContent = isAr ? "إضافة" : "Add";
 
       if (searchInput){
@@ -927,11 +982,53 @@ if (btnConfirmAddUser) btnConfirmAddUser.textContent = isAr ? "إضافة" : "Ad
             currentInvTxt.textContent = "المحققون المشاركون حالياً:";
         }
     }
+
+      updateFilterLabels();
+      if (suggestionsBox && suggestionsBox.classList.contains("show")) renderSuggestions(searchInput ? searchInput.value.trim() : "");
     }
 
     function setText(id, text) {
       const el = document.getElementById(id);
       if (el) el.textContent = text;
+    }
+
+    function currentLang() {
+      return localStorage.getItem("lang") || document.documentElement.lang || "ar";
+    }
+
+    function isArabicUi() {
+      return currentLang() === "ar";
+    }
+
+    function getTypeLabel(type) {
+      const ar = isArabicUi();
+      const labels = {
+        "رابط": ar ? "رابط" : "URL",
+        "Spoofing": ar ? "انتحال / رابط مزيف" : "Spoofing",
+        "كلمة مشبوهة": ar ? "كلمة مشبوهة" : "Suspicious Keyword",
+        "رقم أجنبي": ar ? "رقم أجنبي" : "Foreign Number",
+        "ملف": ar ? "ملف" : "File",
+        "صورة": ar ? "صورة" : "Image",
+        "رقم": ar ? "رقم" : "Number"
+      };
+      return labels[type] || type || "";
+    }
+
+    function updateFilterLabels() {
+      const ar = isArabicUi();
+      const labels = {
+        all: ar ? "الكل" : "All",
+        url: ar ? "الروابط" : "URL",
+        spoofing: ar ? "الانتحال" : "Spoofing",
+        keywords: ar ? "كلمات مشبوهة" : "Suspicious Keywords",
+        foreign: ar ? "أرقام أجنبية" : "Foreign Numbers",
+        files: ar ? "ملفات" : "Files",
+        images: ar ? "صور" : "Images"
+      };
+      document.querySelectorAll(".tag").forEach(tag => {
+        const key = tag.dataset.tag;
+        if (labels[key]) tag.textContent = labels[key];
+      });
     }
 
     function normalizeWord(text) {
@@ -947,16 +1044,93 @@ if (btnConfirmAddUser) btnConfirmAddUser.textContent = isAr ? "إضافة" : "Ad
       return word.trim().length >= 1;
     }
 
+    const SUSPICIOUS_KEYWORDS = [
+      // Access / Identity
+      "otp", "one time password", "verification", "verify", "verification code", "security code", "code", "pin", "passcode",
+      "password", "reset password", "username", "login", "sign in", "signin", "account", "credentials", "2fa", "mfa", "auth",
+
+      // Financial / Banking
+      "bank", "card", "credit card", "debit card", "cvv", "iban", "account number", "wallet", "payment", "pay now",
+      "transfer", "wire transfer", "invoice", "refund", "transaction", "balance", "deposit", "withdraw", "cash", "fee", "tax",
+
+      // Social engineering / Pressure
+      "urgent", "important", "immediately", "asap", "final notice", "last chance", "action required", "limited time",
+      "blocked", "suspended", "locked", "restricted", "disabled", "verify now", "confirm now", "update required",
+
+      // Phishing / Click behavior
+      "click", "click here", "open link", "tap", "download", "install", "update", "scan", "check link", "complete your information",
+      "confirm your information", "do not share", "dont share", "don't share", "share this code", "send the code",
+
+      // Scam lures
+      "offer", "prize", "winner", "gift", "free", "claim", "reward", "bonus", "lottery", "promotion", "congratulations",
+      "delivery", "shipment", "tracking", "customs", "unpaid", "subscription", "job offer", "investment", "profit", "loan",
+
+      // Malware / Suspicious files
+      "apk", "exe", "install app", "unknown app", "security update", "system update", "remote access", "tracking app", "spy", "malware",
+
+      // Arabic - Access / Identity
+      "رمز", "رمز التحقق", "كود", "كود التحقق", "رقم سري", "الرقم السري", "كلمة المرور", "كلمة السر", "تسجيل دخول",
+      "تحقق", "تأكيد", "تفعيل", "توثيق", "بيانات الدخول", "بياناتك", "حسابك", "أرسل الرمز", "ارسل الرمز", "لا تشارك", "لا ترسل الرمز",
+
+      // Arabic - Financial / Banking
+      "بنك", "البنك", "حساب", "حساب بنكي", "بطاقة", "بطاقة ائتمانية", "مدى", "فيزا", "cvv", "آيبان", "ايبان",
+      "تحويل", "حوالة", "دفع", "سداد", "فاتورة", "رسوم", "ضريبة", "مبلغ", "رصيد", "سحب", "إيداع", "محفظة", "استرداد",
+
+      // Arabic - Pressure / Threat
+      "عاجل", "ضروري", "مهم", "تنبيه", "تحذير", "آخر فرصة", "اخر فرصة", "سيتم إغلاق", "سيتم اغلاق", "إيقاف الحساب", "ايقاف الحساب",
+      "تم إيقاف", "تم ايقاف", "حسابك موقوف", "حسابك معلق", "محظور", "معلق", "مقيد", "حسابك معرض", "تحديث مطلوب",
+
+      // Arabic - Phishing behavior
+      "اضغط", "اضغط هنا", "افتح الرابط", "الرابط", "تحميل", "حمل", "تثبيت", "حدث التطبيق", "تحديث", "فحص", "افحص", "أكمل بياناتك", "اكمل بياناتك",
+      "أكد بياناتك", "اكد بياناتك", "تأكيد البيانات", "ادخل بياناتك", "سجل دخولك",
+
+      // Arabic - Scam lures
+      "عرض", "جائزة", "هدية", "مجانا", "مجاناً", "اربح", "ربحت", "مبروك", "مكافأة", "مكافاه", "استلم", "استلام",
+      "شحنة", "توصيل", "تتبع الشحنة", "الجمارك", "رسالة من البنك", "وظيفة", "استثمار", "ربح", "قرض", "دعم"
+    ];
+
+    const FAMOUS_DOMAINS = [
+      // Global famous services
+      "apple.com", "appleid.apple.com", "icloud.com", "paypal.com", "google.com", "gmail.com", "accounts.google.com",
+      "microsoft.com", "office.com", "outlook.com", "live.com", "facebook.com", "instagram.com", "whatsapp.com",
+      "amazon.com", "netflix.com", "x.com", "twitter.com", "linkedin.com", "snapchat.com", "tiktok.com", "youtube.com",
+
+      // Saudi telecom / gov / identity
+      "stc.com.sa", "my.stc.com.sa", "mobily.com.sa", "zain.com", "absher.sa", "iam.gov.sa", "nafath.sa",
+      "my.gov.sa", "moi.gov.sa", "moe.gov.sa", "moh.gov.sa", "zatca.gov.sa", "najiz.sa", "etimad.sa", "gosi.gov.sa",
+      "balady.gov.sa", "tawakkalna.gov.sa", "sdaia.gov.sa", "saudibusiness.gov.sa",
+
+      // Saudi banks / finance
+      "alrajhibank.com.sa", "alrajhi.com", "riyadbank.com", "bankalbilad.com", "alinma.com", "snb.com.sa", "alahli.com",
+      "sab.com", "anb.com.sa", "bankaljazira.com", "saib.com.sa", "alawwalbank.com", "fransibank.com.sa",
+      "jazira.com", "mada.com.sa", "stcpay.com.sa", "urpay.com.sa", "tamara.co", "tabby.ai",
+
+      // Delivery / shipping common in scams
+      "splonline.com.sa", "saudipost.sa", "aramex.com", "dhl.com", "fedex.com", "ups.com", "smsaexpress.com",
+      "noon.com", "jarir.com", "extra.com", "hungerstation.com", "jahez.net", "mrsool.co",
+
+      // Large local orgs
+      "aramco.com", "sabic.com", "neom.com", "stc.com", "redsea.com"
+    ];
+
     function detectSuggestionType(value) {
       const v = String(value || "").toLowerCase();
+      if (isSpoofingText(v)) return "Spoofing";
       if (/(https?:\/\/\S+|www\.\S+)/i.test(v)) return "رابط";
-      if (/\.(jpg|jpeg|png|gif|webp|bmp)\b/i.test(v)) return "صورة";
+      if (textHasFile(v)) return "ملف";
+      if (textHasImage(v)) return "صورة";
+      if (textHasForeignNumber(v)) return "رقم أجنبي";
+      if (textHasSuspiciousKeyword(v)) return "كلمة مشبوهة";
       if (/^\+?\d[\d\s\-]{3,}$/.test(v) || /^\d{2,}$/.test(v)) return "رقم";
       return "";
     }
 
     function suggestionIcon(type) {
       if (type === "رابط") return "fa-link";
+      if (type === "Spoofing") return "fa-triangle-exclamation";
+      if (type === "كلمة مشبوهة") return "fa-triangle-exclamation";
+      if (type === "رقم أجنبي") return "fa-globe";
+      if (type === "ملف") return "fa-file-lines";
       if (type === "رقم") return "fa-hashtag";
       if (type === "صورة") return "fa-image";
       if (type === "موقع") return "fa-location-dot";
@@ -967,70 +1141,178 @@ if (btnConfirmAddUser) btnConfirmAddUser.textContent = isAr ? "إضافة" : "Ad
       return /(\b(location|gps|map|pin)\b|موقع|لوكيشن|إحداثيات|احداثيات|خريطة|-?\d{1,3}\.\d+\s*,\s*-?\d{1,3}\.\d+)/i.test(String(value || ""));
     }
 
+    function extractUrls(text = "") {
+      return String(text || "").match(/https?:\/\/[^\s<>()]+|www\.[^\s<>()]+/gi) || [];
+    }
+
+    function extractDomain(url = "") {
+      try {
+        let clean = String(url || "").trim().replace(/[),.;!?]+$/g, "");
+        if (!/^https?:\/\//i.test(clean)) clean = "https://" + clean;
+        return new URL(clean).hostname.toLowerCase().replace(/^www\./, "");
+      } catch (e) { return ""; }
+    }
+
+    function normalizeDomainName(value = "") {
+      return String(value || "")
+        .toLowerCase()
+        .replace(/0/g, "o").replace(/1/g, "l").replace(/3/g, "e").replace(/4/g, "a")
+        .replace(/5/g, "s").replace(/7/g, "t").replace(/8/g, "b")
+        .replace(/[|!]/g, "l").replace(/\$/g, "s")
+        .replace(/rn/g, "m")
+        .replace(/[^a-z0-9]/g, "");
+    }
+
+    function levenshtein(a, b) {
+      a = String(a || ""); b = String(b || "");
+      const dp = Array.from({ length: a.length + 1 }, () => Array(b.length + 1).fill(0));
+      for (let i = 0; i <= a.length; i++) dp[i][0] = i;
+      for (let j = 0; j <= b.length; j++) dp[0][j] = j;
+      for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) {
+        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+        dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + cost);
+      }
+      return dp[a.length][b.length];
+    }
+
+    function getSpoofingMatch(urlOrText = "") {
+      const urls = extractUrls(urlOrText);
+      const candidates = urls.length ? urls : [urlOrText];
+
+      for (const raw of candidates) {
+        const domain = extractDomain(raw) || String(raw || "").toLowerCase();
+        if (!domain || FAMOUS_DOMAINS.includes(domain)) continue;
+
+        const domainParts = domain.split(".");
+        const mainRaw = domainParts.length > 1 ? domainParts[domainParts.length - 2] : domainParts[0];
+        const mainNorm = normalizeDomainName(mainRaw);
+        if (!mainNorm || mainNorm.length < 3) continue;
+
+        for (const official of FAMOUS_DOMAINS) {
+          const officialParts = official.split(".");
+          const officialMain = officialParts.length > 1 ? officialParts[officialParts.length - 2] : officialParts[0];
+          const officialNorm = normalizeDomainName(officialMain);
+          if (!officialNorm || officialNorm.length < 3) continue;
+
+          if (domain === official || mainNorm === officialNorm) continue;
+
+          const distance = levenshtein(mainNorm, officialNorm);
+          const closeLength = Math.abs(mainNorm.length - officialNorm.length) <= 3;
+          const sameStart = mainNorm[0] && mainNorm[0] === officialNorm[0];
+          const containsBrand = mainNorm.includes(officialNorm) || officialNorm.includes(mainNorm);
+          const typoSquat = closeLength && sameStart && distance > 0 && distance <= 2;
+          const shortBrandTypo = officialNorm.length <= 5 && closeLength && distance <= 2;
+
+          if (containsBrand || typoSquat || shortBrandTypo) {
+            const brand = officialMain;
+            const suggestions = FAMOUS_DOMAINS
+              .filter(d => d.includes(brand) || brand.includes((d.split(".").slice(-2, -1)[0] || d.split(".")[0])))
+              .slice(0, 8);
+            return { suspicious: domain, resembles: official, suggestions: suggestions.length ? suggestions : [official] };
+          }
+        }
+      }
+      return null;
+    }
+
+    function isSpoofingText(text = "") { return Boolean(getSpoofingMatch(text)); }
+
+    function textHasSuspiciousKeyword(text = "") {
+      const t = String(text || "").toLowerCase();
+      return SUSPICIOUS_KEYWORDS.some(k => t.includes(k.toLowerCase()));
+    }
+
+    function textHasFile(text = "") {
+      return /\b\S+\.(pdf|doc|docx|xls|xlsx|ppt|pptx|zip|rar|7z|apk|exe|msi|bat|cmd|js|vbs|scr|csv|txt)\b/i.test(String(text || ""));
+    }
+
+    function extractPhoneCandidates(text = "") {
+      return String(text || "").match(/(?<!\d)(?:\+|00)?\d[\d\s\-()]{6,}\d(?!\d)/g) || [];
+    }
+
+    function textHasForeignNumber(text = "") {
+      return extractPhoneCandidates(text).some(raw => {
+        const n = raw.replace(/[^\d+]/g, "");
+        const digits = n.replace(/\D/g, "");
+        if (digits.length < 8) return false;
+        if (n.startsWith("+966") || digits.startsWith("00966") || digits.startsWith("966")) return false;
+        if (!n.startsWith("+") && !digits.startsWith("00")) return false;
+        return true;
+      });
+    }
+
     function buildSuggestionPool() {
       const map = new Map();
+
+      function addSuggestion(value, type, chatId, msgId) {
+        const cleaned = String(value || "").trim().replace(/[),.;!?]+$/g, "");
+        if (!cleaned || !type) return;
+
+        const key = `${type}::${cleaned.toLowerCase()}`;
+        if (!map.has(key)) {
+          map.set(key, {
+            value: cleaned,
+            type,
+            count: 1,
+            targets: [{ chatId, msgId }]
+          });
+        } else {
+          const item = map.get(key);
+          item.count += 1;
+          if (!item.targets.some(t => String(t.chatId) === String(chatId) && String(t.msgId) === String(msgId))) {
+            item.targets.push({ chatId, msgId });
+          }
+        }
+      }
 
       chatsData.forEach(chat => {
         (chat.messages || []).forEach(m => {
           const text = String(m.text || "");
+          const lower = text.toLowerCase();
 
-          const urls = text.match(/https?:\/\/\S+|www\.\S+/gi) || [];
-          urls.forEach(url => {
-            const cleaned = url.trim();
-            const key = cleaned.toLowerCase();
-            if (!map.has(key)) {
-              map.set(key, { value: cleaned, type: "رابط", count: 1 });
-            } else {
-              map.get(key).count += 1;
-            }
+          extractUrls(text).forEach(url => {
+            addSuggestion(url, isSpoofingText(url) ? "Spoofing" : "رابط", chat.id, m.id);
           });
 
-          const numbers = text.match(/(?<!\d)(?:\+?\d[\d\s\-]{3,}\d|\d{2,8})(?!\d)/g) || [];
-          numbers.forEach(num => {
-            const cleaned = num.trim();
-            const key = cleaned.toLowerCase();
-            if (!map.has(key)) {
-              map.set(key, { value: cleaned, type: "رقم", count: 1 });
-            } else {
-              map.get(key).count += 1;
-            }
+          extractPhoneCandidates(text).forEach(num => {
+            if (textHasForeignNumber(num)) addSuggestion(num, "رقم أجنبي", chat.id, m.id);
           });
 
-          const normalized = normalizeWord(text);
-          normalized.split(" ").forEach(word => {
-            const cleaned = word.trim();
-            if (!isUsefulWord(cleaned)) return;
+          (text.match(/\b\S+\.(pdf|doc|docx|xls|xlsx|ppt|pptx|zip|rar|7z|apk|exe|msi|bat|cmd|js|vbs|scr|csv|txt)\b/gi) || [])
+            .forEach(file => addSuggestion(file, "ملف", chat.id, m.id));
 
-            const key = cleaned.toLowerCase();
-            if (!map.has(key)) {
-              map.set(key, { value: cleaned, type: detectSuggestionType(cleaned), count: 1 });
-            } else {
-              map.get(key).count += 1;
-            }
+          (text.match(/\b\S+\.(jpg|jpeg|png|gif|webp|bmp)\b/gi) || [])
+            .forEach(img => addSuggestion(img, "صورة", chat.id, m.id));
+
+          SUSPICIOUS_KEYWORDS.forEach(k => {
+            if (lower.includes(k.toLowerCase())) addSuggestion(k, "كلمة مشبوهة", chat.id, m.id);
           });
         });
       });
 
-      suggestionPool = Array.from(map.values())
-        .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value));
+      suggestionPool = Array.from(map.values()).sort((a, b) => b.count - a.count || a.value.localeCompare(b.value));
     }
 
     function getSuggestions(query) {
       const q = String(query || "").toLowerCase();
-
       let pool = suggestionPool;
 
       if (activeTagFilter === "url") {
         pool = pool.filter(item => item.type === "رابط");
+      } else if (activeTagFilter === "spoofing") {
+        pool = pool.filter(item => item.type === "Spoofing");
+      } else if (activeTagFilter === "keywords") {
+        pool = pool.filter(item => item.type === "كلمة مشبوهة");
+      } else if (activeTagFilter === "foreign") {
+        pool = pool.filter(item => item.type === "رقم أجنبي");
+      } else if (activeTagFilter === "files") {
+        pool = pool.filter(item => item.type === "ملف");
       } else if (activeTagFilter === "images") {
         pool = pool.filter(item => item.type === "صورة");
-      } else if (activeTagFilter === "location") {
-        pool = pool.filter(item => isLocationValue(item.value));
       }
 
-      if (!q) return pool.slice(0, 10);
-
-      return pool.filter(item => item.value.toLowerCase().includes(q)).slice(0, 10);
+      if (!q) return pool.slice(0, 25);
+      return pool.filter(item => item.value.toLowerCase().includes(q)).slice(0, 25);
     }
 
     function renderSuggestions(query) {
@@ -1044,7 +1326,8 @@ if (btnConfirmAddUser) btnConfirmAddUser.textContent = isAr ? "إضافة" : "Ad
       suggestionsBox.innerHTML = "";
 
       suggestions.forEach(item => {
-        const typeLabel = item.type || (isLocationValue(item.value) ? "موقع" : "");
+        const typeLabel = item.type || "";
+        const displayTypeLabel = getTypeLabel(typeLabel);
         const row = document.createElement("div");
         row.className = "suggestion-item";
         row.innerHTML = `
@@ -1052,19 +1335,34 @@ if (btnConfirmAddUser) btnConfirmAddUser.textContent = isAr ? "إضافة" : "Ad
             <i class="fa-solid ${suggestionIcon(typeLabel)}"></i>
             <span class="suggestion-text">${escapeHtml(item.value)}</span>
           </div>
-          <span class="suggestion-type">${typeLabel}</span>
+          <span class="suggestion-type">${escapeHtml(displayTypeLabel)}${item.count > 1 ? ` · ${item.count}` : ""}</span>
         `;
 
         row.addEventListener("click", () => {
-          searchInput.value = item.value;
-          hideSuggestions();
-          applySearch(item.value);
+          openDetectionResult(item);
         });
 
         suggestionsBox.appendChild(row);
       });
 
       suggestionsBox.classList.add("show");
+    }
+
+    function openDetectionResult(item) {
+      if (!item) return;
+
+      const target = item.targets && item.targets.length ? item.targets[0] : null;
+      searchInput.value = item.value;
+      currentSearchQuery = item.value;
+      focusedMessageId = target ? target.msgId : null;
+      hideSuggestions();
+
+      const filtered = chatsData.filter(chat => chatMatchesQuery(chat, item.value));
+      if (target) selectedChatId = target.chatId;
+      else selectedChatId = filtered.length ? filtered[0].id : selectedChatId;
+
+      renderChatList(filtered.length ? filtered : chatsData);
+      if (selectedChatId) renderMessages(selectedChatId);
     }
 
     function showTagSuggestions() {
@@ -1090,37 +1388,61 @@ if (btnConfirmAddUser) btnConfirmAddUser.textContent = isAr ? "إضافة" : "Ad
     }
 
     function highlightText(text, query) {
-      const safeText = escapeHtml(text || "");
+      return highlightMessageContent(text, query);
+    }
+
+    function highlightByRegexOnEscaped(safeText, regex, className = "entity-hit") {
+      return safeText.replace(regex, (match) => `<mark class="${className}">${match}</mark>`);
+    }
+
+    function highlightMessageContent(text, query) {
+      let safeText = escapeHtml(text || "");
       const q = String(query || "").trim();
-
-      if (!q) return safeText;
-
-      const regex = new RegExp(`(${escapeRegex(q)})`, "gi");
-      return safeText.replace(regex, `<mark class="search-hit">$1</mark>`);
+      if (q) {
+        const regex = new RegExp(`(${escapeRegex(q)})`, "gi");
+        return safeText.replace(regex, `<mark class="search-hit">$1</mark>`);
+      }
+      if (activeTagFilter === "url") return highlightByRegexOnEscaped(safeText, /(https?:\/\/[^\s<]+|www\.[^\s<]+)/gi, "url-hit");
+      if (activeTagFilter === "spoofing") return highlightByRegexOnEscaped(safeText, /(https?:\/\/[^\s<]+|www\.[^\s<]+)/gi, "danger-hit");
+      if (activeTagFilter === "keywords") {
+        SUSPICIOUS_KEYWORDS.forEach(k => {
+          safeText = safeText.replace(new RegExp(`(${escapeRegex(escapeHtml(k))})`, "gi"), `<mark class="entity-hit">$1</mark>`);
+        });
+        return safeText;
+      }
+      if (activeTagFilter === "foreign") return highlightByRegexOnEscaped(safeText, /(?:\+|00)\d[\d\s\-()]{6,}\d/g, "foreign-hit");
+      if (activeTagFilter === "files") return highlightByRegexOnEscaped(safeText, /\b\S+\.(pdf|doc|docx|xls|xlsx|ppt|pptx|zip|rar|7z|apk|exe|msi|bat|cmd|js|vbs|scr|csv|txt)\b/gi, "entity-hit");
+      if (activeTagFilter === "images") return highlightByRegexOnEscaped(safeText, /\b\S+\.(jpg|jpeg|png|gif|webp|bmp)\b/gi, "url-hit");
+      return safeText;
     }
 
-    function textHasUrl(text = "") {
-      return /(https?:\/\/\S+|www\.\S+)/i.test(text);
+    function textHasUrl(text = "") { return /(https?:\/\/\S+|www\.\S+)/i.test(text); }
+    function textHasImage(text = "") { return /\b\S+\.(jpg|jpeg|png|gif|webp|bmp)\b/i.test(text); }
+    function textHasLocation(text = "") { return /(\b(location|gps|map|pin)\b|موقع|لوكيشن|إحداثيات|احداثيات|خريطة|-?\d{1,3}\.\d+\s*,\s*-?\d{1,3}\.\d+)/i.test(text); }
+
+    function messageMatchesTagText(text, tag) {
+      if (tag === "all") return true;
+      if (tag === "url") return textHasUrl(text);
+      if (tag === "spoofing") return isSpoofingText(text);
+      if (tag === "keywords") return textHasSuspiciousKeyword(text);
+      if (tag === "foreign") return textHasForeignNumber(text);
+      if (tag === "files") return textHasFile(text);
+      if (tag === "images") return textHasImage(text);
+      return true;
     }
 
-    function textHasImage(text = "") {
-      return /\.(jpg|jpeg|png|gif|webp|bmp)\b/i.test(text);
-    }
-
-    function textHasLocation(text = "") {
-      return /(\b(location|gps|map|pin)\b|موقع|لوكيشن|إحداثيات|احداثيات|خريطة|-?\d{1,3}\.\d+\s*,\s*-?\d{1,3}\.\d+)/i.test(text);
+    function messageMatchesCurrentFilters(m) {
+      const text = String(m?.text || "");
+      const q = String(currentSearchQuery || "").trim().toLowerCase();
+      if (!messageMatchesTagText(text, activeTagFilter)) return false;
+      if (!q) return true;
+      return text.toLowerCase().includes(q);
     }
 
     function chatMatchesTag(chat, tag) {
       if (tag === "all") return true;
-
       const texts = (chat.messages || []).map(m => m.text || "");
-
-      if (tag === "url") return texts.some(t => textHasUrl(t));
-      if (tag === "images") return texts.some(t => textHasImage(t));
-      if (tag === "location") return texts.some(t => textHasLocation(t));
-
-      return true;
+      return texts.some(t => messageMatchesTagText(t, tag));
     }
 
 function updateCaseBanner(title, desc) {
@@ -1159,16 +1481,11 @@ function updateCaseBanner(title, desc) {
         return messages.some(t => textHasUrl(t) && t.includes(qLower));
       }
 
-      if (activeTagFilter === "url") {
-        return messages.some(t => textHasUrl(t) && t.includes(qLower));
-      }
-
-      if (activeTagFilter === "images") {
-        return messages.some(t => textHasImage(t) && t.includes(qLower));
-      }
-
-      if (activeTagFilter === "location") {
-        return messages.some(t => textHasLocation(t) && t.includes(qLower));
+      if (activeTagFilter !== "all") {
+        return (chat.messages || []).some(m => {
+          const t = String(m.text || "").toLowerCase();
+          return messageMatchesTagText(t, activeTagFilter) && t.includes(qLower);
+        });
       }
 
       if (isNumberQuery) {
@@ -1194,13 +1511,15 @@ function updateCaseBanner(title, desc) {
     function applySearch(queryText = null) {
       const q = (queryText !== null ? queryText : searchInput.value).trim();
       currentSearchQuery = q;
+      focusedMessageId = null;
 
       const filtered = chatsData.filter(chat => {
-        return chatMatchesTag(chat, activeTagFilter) && chatMatchesQuery(chat, q);
+        if (!q && activeTagFilter === "all") return true;
+        if (!q && activeTagFilter !== "all") return chatMatchesTag(chat, activeTagFilter);
+        return chatMatchesQuery(chat, q);
       });
 
       selectedChatId = filtered.length ? filtered[0].id : null;
-
       renderChatList(filtered);
 
       if (selectedChatId) {
@@ -1269,8 +1588,12 @@ function updateCaseBanner(title, desc) {
       messageView.innerHTML = "";
 
       let firstMatchedBox = null;
+      const messagesToRender = (chat.messages || []).filter(m => {
+        if (!currentSearchQuery) return true;
+        return messageMatchesCurrentFilters(m);
+      });
 
-      (chat.messages || []).forEach((m) => {
+      messagesToRender.forEach((m) => {
         const box = document.createElement("div");
         box.className = `msg ${m.type}`;
         box.dataset.msgId = m.id;
@@ -1288,13 +1611,24 @@ if (selectedMessageIds.has(selectionKey)) {
           ? text.toLowerCase().includes(currentSearchQuery.toLowerCase())
           : false;
 
+        const spoofInfo = getSpoofingMatch(text);
+        const spoofNote = spoofInfo
+          ? `<div style="margin-top:8px;font-size:0.78rem;color:#ffd0d0;border-top:1px solid rgba(255,255,255,0.12);padding-top:6px;">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+              ${isArabicUi() ? "احتمال انتحال:" : "Possible spoofing:"} <b>${escapeHtml(spoofInfo.suspicious)}</b>
+              ${isArabicUi() ? "يشبه" : "resembles"} <b>${escapeHtml(spoofInfo.resembles)}</b><br>
+              <span style="color:#c2dec9;">${isArabicUi() ? "اقتراحات مطابقة:" : "Suggested official domains:"} ${spoofInfo.suggestions.map(escapeHtml).join(" ، ")}</span>
+            </div>`
+          : "";
+
         box.innerHTML = `
           <p>${highlightText(text, currentSearchQuery)}</p>
+          ${spoofNote}
           <span class="msg-time">${escapeHtml(timeOnly)}</span>
         `;
 
-        if (hasMatch && !firstMatchedBox) {
-          firstMatchedBox = box;
+        if ((focusedMessageId !== null && String(m.id) === String(focusedMessageId)) || (hasMatch && !firstMatchedBox)) {
+          if (!firstMatchedBox) firstMatchedBox = box;
           box.classList.add("focused-hit");
         }
 
@@ -1314,6 +1648,11 @@ box.addEventListener("click", () => {
 
       if (!chat.messages || !chat.messages.length) {
         messageView.innerHTML = `<div class="empty-state">هذه المحادثة لا تحتوي على رسائل</div>`;
+        return;
+      }
+
+      if (!messagesToRender.length) {
+        messageView.innerHTML = `<div class="empty-state">لا توجد رسائل مطابقة لهذا الفلتر داخل هذه المحادثة</div>`;
         return;
       }
 
@@ -1624,17 +1963,29 @@ function collectReportRows() {
         document.querySelectorAll(".tag").forEach(t => t.classList.remove("active-tag"));
         tag.classList.add("active-tag");
 
-        applySearch(searchInput.value.trim());
-
         if (activeTagFilter === "all") {
-          if (searchInput.value.trim()) {
-            renderSuggestions(searchInput.value.trim());
-          } else {
-            hideSuggestions();
-          }
-        } else {
-          showTagSuggestions();
+          searchInput.value = "";
+          currentSearchQuery = "";
+          focusedMessageId = null;
+          hideSuggestions();
+          selectedChatId = chatsData.length ? chatsData[0].id : null;
+          renderChatList(chatsData);
+          if (selectedChatId) renderMessages(selectedChatId);
+          else messageView.innerHTML = `<div class="empty-state">لا توجد محادثات لعرضها في هذه القضية</div>`;
+          return;
         }
+
+        searchInput.value = "";
+        currentSearchQuery = "";
+        focusedMessageId = null;
+
+        const filtered = chatsData.filter(chat => chatMatchesTag(chat, activeTagFilter));
+        selectedChatId = filtered.length ? filtered[0].id : null;
+        renderChatList(filtered);
+        if (selectedChatId) renderMessages(selectedChatId);
+        else messageView.innerHTML = `<div class="empty-state">لا توجد نتائج لهذا الفلتر</div>`;
+
+        showTagSuggestions();
       });
     });
 
@@ -1645,17 +1996,60 @@ function collectReportRows() {
         hideSuggestions();
       }
     });
-function openUserPicker() {
+function openTeamManagement() {
   userPickerModal.style.display = "flex";
-  userSearchInput.value = "";
+  selectedUserToAdd = null;
+
+  if (addInvestigatorPanel) {
+    addInvestigatorPanel.style.display = "none";
+  }
+
+  if (userSearchInput) {
+    userSearchInput.value = "";
+  }
+
+  if (userResults) {
+    userResults.innerHTML = "";
+  }
+
+  if (selectedCaseId) {
+    loadCaseInvestigators(selectedCaseId);
+  }
+}
+
+function openAddInvestigatorPanel() {
+  if (addInvestigatorPanel) {
+    addInvestigatorPanel.style.display = "block";
+  }
+
+  if (userSearchInput) {
+    userSearchInput.value = "";
+    userSearchInput.focus();
+  }
+
   selectedUserToAdd = null;
   loadUsersList("");
 }
 
+function closeAddInvestigatorPanel() {
+  if (addInvestigatorPanel) {
+    addInvestigatorPanel.style.display = "none";
+  }
+
+  if (userResults) {
+    userResults.innerHTML = "";
+  }
+
+  if (userSearchInput) {
+    userSearchInput.value = "";
+  }
+
+  selectedUserToAdd = null;
+}
+
 function closeUserPicker() {
   userPickerModal.style.display = "none";
-  userResults.innerHTML = "";
-  selectedUserToAdd = null;
+  closeAddInvestigatorPanel();
 }
 
 async function loadUsersList(query = "") {
@@ -1728,18 +2122,23 @@ async function confirmAddUserToCase() {
     }
 
     alert("تمت إضافة المستخدم بنجاح");
-    closeUserPicker();
+    closeAddInvestigatorPanel();
+    loadCaseInvestigators(selectedCaseId);
   } catch (e) {
     console.error("Add user error:", e);
     alert("حدث خطأ أثناء إضافة المستخدم");
   }
 }
-if (btnAddUser) {
-  btnAddUser.addEventListener("click", openUserPicker);
+if (btnTeamManagement) {
+  btnTeamManagement.addEventListener("click", openTeamManagement);
 }
 
 if (btnCloseUserPicker) {
   btnCloseUserPicker.addEventListener("click", closeUserPicker);
+}
+
+if (btnCancelAddUser) {
+  btnCancelAddUser.addEventListener("click", closeAddInvestigatorPanel);
 }
 
 if (btnConfirmAddUser) {
@@ -1813,6 +2212,8 @@ async function loadCaseInvestigators(cId) {
         if (cId) {
             box.style.display = "block";
         }
+
+        if (!listDiv) return;
 
         if (data.ok && data.users && data.users.length > 0) {
             listDiv.innerHTML = data.users.map(u => `
