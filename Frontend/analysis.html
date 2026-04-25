@@ -219,26 +219,30 @@
       .col-6{ grid-column: span 12; }
     }
 
-    /* ===== Cyber Scrollbar (Soft Version) ===== */
-    ::-webkit-scrollbar {
-      width: 10px;
-    }
+/* ===== Chat Style Scrollbar ===== */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #5fbf7a rgba(20, 40, 30, 0.4);
+}
 
-    ::-webkit-scrollbar-track {
-      background: rgba(20, 40, 30, 0.25);
-      border-radius: 10px;
-    }
+::-webkit-scrollbar {
+  width: 8px;
+}
 
-    ::-webkit-scrollbar-thumb {
-      background: linear-gradient(180deg, #4da96a, #1c4d32);
-      border-radius: 10px;
-      box-shadow: 0 0 4px rgba(63, 155, 95, 0.4);
-    }
+::-webkit-scrollbar-track {
+  background: rgba(20, 40, 30, 0.4);
+  border-radius: 20px;
+}
 
-    ::-webkit-scrollbar-thumb:hover {
-      background: #6fcf8f;
-      box-shadow: 0 0 6px rgba(63, 155, 95, 0.5);
-    }
+::-webkit-scrollbar-thumb {
+  background: #5fbf7a;
+  border-radius: 20px;
+  border: 2px solid rgba(20, 40, 30, 0.7);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #8fd9a8;
+}
   </style>
 </head>
 
