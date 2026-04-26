@@ -69,8 +69,6 @@ def pull_whatsapp_evidence(case_id="Case_001"):
                 print(f"[INFO] Using fallback DB path: {android_db}")
                 break
 
-    android_key = "/data/data/com.whatsapp/files/key"
-
     local_db_path = os.path.join(save_path, "msgstore.db.crypt14")
     local_key_path = os.path.join(save_path, "key")
 
@@ -114,18 +112,63 @@ def pull_whatsapp_evidence(case_id="Case_001"):
     try:
         temp_key_on_sdcard = "/sdcard/key"
 
-        res_cp = _run(base_cmd + ["shell", "su", "-c", f"cp {android_key} {temp_key_on_sdcard}"])
-        if res_cp.returncode != 0:
-            raise Exception(res_cp.stderr or res_cp.stdout)
+        # إذا كان serial فيه : فغالبًا هذا Wi-Fi / VirtualBox
+        is_wifi = bool(serial and ":" in serial)
 
-        res_pull = _run(base_cmd + ["pull", temp_key_on_sdcard, local_key_path])
-        if res_pull.returncode != 0:
-            raise Exception(res_pull.stderr or res_pull.stdout)
+        if not is_wifi:
+            # ===== USB: يبقى مثل طريقتك الأصلية =====
+            android_key = "/data/data/com.whatsapp/files/key"
 
-        try:
-            _run(base_cmd + ["shell", "rm", temp_key_on_sdcard])
-        except Exception:
-            pass
+            res_cp = _run(base_cmd + ["shell", "su", "-c", f"cp {android_key} {temp_key_on_sdcard}"])
+            if res_cp.returncode != 0:
+                raise Exception(res_cp.stderr or res_cp.stdout)
+
+            res_pull = _run(base_cmd + ["pull", temp_key_on_sdcard, local_key_path])
+            if res_pull.returncode != 0:
+                raise Exception(res_pull.stderr or res_pull.stdout)
+
+            try:
+                _run(base_cmd + ["shell", "rm", temp_key_on_sdcard])
+            except Exception:
+                pass
+
+        else:
+            # ===== Wi-Fi / VirtualBox فقط =====
+            possible_key_paths = [
+                "/data/data/com.whatsapp/files/key",
+                "/data/user/0/com.whatsapp/files/key"
+            ]
+
+            key_pulled = False
+            last_error = ""
+
+            for android_key in possible_key_paths:
+                print(f"[INFO] Trying key path: {android_key}")
+
+                # مهم: نرسل أمر su -c كامل كسلسلة واحدة
+                res_cp = _run(base_cmd + ["shell", f'su -c "cp {android_key} {temp_key_on_sdcard}"'])
+                if res_cp.returncode != 0:
+                    last_error = res_cp.stderr or res_cp.stdout or f"Failed to copy key from {android_key}"
+                    continue
+
+                _run(base_cmd + ["shell", f'su -c "chmod 666 {temp_key_on_sdcard}"'])
+
+                res_pull = _run(base_cmd + ["pull", temp_key_on_sdcard, local_key_path])
+                if res_pull.returncode != 0:
+                    last_error = res_pull.stderr or res_pull.stdout or f"Failed to pull key from {android_key}"
+                    continue
+
+                key_pulled = True
+                print(f"[INFO] Key pulled successfully from: {android_key}")
+                break
+
+            try:
+                _run(base_cmd + ["shell", f'su -c "rm -f {temp_key_on_sdcard}"'])
+            except Exception:
+                pass
+
+            if not key_pulled:
+                raise Exception(last_error or "Failed to pull WhatsApp key from all known paths")
 
         key_hash = calculate_sha256(local_key_path)
         key_size = os.path.getsize(local_key_path)
