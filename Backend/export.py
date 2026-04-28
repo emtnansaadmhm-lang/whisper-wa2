@@ -1,6 +1,5 @@
 from flask import Blueprint, request, send_file, jsonify
 import csv
-import io
 import os
 from datetime import datetime
 
@@ -11,9 +10,56 @@ bp_export = Blueprint("bp_export", __name__)
 try:
     from reportlab.lib.pagesizes import letter
     from reportlab.pdfgen import canvas
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
     REPORTLAB_AVAILABLE = True
 except ImportError:
     REPORTLAB_AVAILABLE = False
+
+try:
+    import arabic_reshaper
+    from bidi.algorithm import get_display
+    ARABIC_AVAILABLE = True
+except ImportError:
+    ARABIC_AVAILABLE = False
+
+
+def fix_arabic(text):
+    text = str(text) if text is not None else ""
+
+    if not ARABIC_AVAILABLE:
+        return text
+
+    try:
+        reshaped = arabic_reshaper.reshape(text)
+        return get_display(reshaped)
+    except Exception:
+        return text
+
+
+def register_arabic_font():
+    font_paths = [
+        r"C:\Windows\Fonts\arial.ttf",
+        r"C:\Windows\Fonts\tahoma.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    ]
+
+    for path in font_paths:
+        if os.path.exists(path):
+            pdfmetrics.registerFont(TTFont("ArabicFont", path))
+            return "ArabicFont"
+
+    return "Helvetica"
+
+
+def safe_text(text, max_len=120):
+    text = str(text) if text is not None else ""
+    text = text.replace("\n", " ").replace("\r", " ")
+
+    if len(text) > max_len:
+        text = text[:max_len - 3] + "..."
+
+    return fix_arabic(text)
 
 
 def build_report_meta(body, file_name, file_path, file_type):
@@ -94,31 +140,69 @@ def export_pdf():
     file_name = f"forensic_report_{safe_case}_{report_id}.pdf"
     file_path = os.path.join(REPORTS_DIR, file_name)
 
-    pdf = canvas.Canvas(file_path, pagesize=letter)
-    y = 750
-    pdf.setFont("Helvetica-Bold", 12)
-    pdf.drawString(50, y, "Whisper-WA Forensic Report")
-    y -= 25
+    font_name = register_arabic_font()
 
-    pdf.setFont("Helvetica", 10)
-    pdf.drawString(50, y, f"Case Number: {body.get('caseNumber', '---')}")
-    y -= 18
-    pdf.drawString(50, y, f"Investigator: {body.get('investigator', 'Unknown')}")
-    y -= 18
-    pdf.drawString(50, y, f"Device: {body.get('deviceInfo', '---')}")
+    pdf = canvas.Canvas(file_path, pagesize=letter)
+
+    page_width, page_height = letter
+    right_x = page_width - 50
+    y = 750
+
+    # ===== Title =====
+    pdf.setFont(font_name, 14)
+    pdf.drawRightString(right_x, y, safe_text("Whisper-WA Forensic Report"))
     y -= 30
 
-    for msg in data:
-        line = f"{msg.get('datetime', '')} | {msg.get('number', '')} | {msg.get('type', '')} | {msg.get('message', '')}"
-        if len(line) > 120:
-            line = line[:117] + "..."
+    # ===== Info =====
+    pdf.setFont(font_name, 10)
 
-        pdf.drawString(50, y, line)
+    pdf.drawRightString(
+        right_x,
+        y,
+        safe_text(f"Case Number: {body.get('caseNumber', '---')}")
+    )
+    y -= 18
+
+    pdf.drawRightString(
+        right_x,
+        y,
+        safe_text(f"Investigator: {body.get('investigator', 'Unknown')}")
+    )
+    y -= 30
+
+    # ===== Evidence Section =====
+    pdf.drawRightString(
+        right_x,
+        y,
+        safe_text("Evidence of Interest:")
+    )
+    y -= 18
+
+    pdf.drawRightString(
+        right_x,
+        y,
+        safe_text("The following extracted messages are considered relevant to the forensic investigation.")
+    )
+    y -= 30
+
+    # ===== Messages =====
+    pdf.drawRightString(right_x, y, safe_text("Extracted Messages:"))
+    y -= 22
+
+    for msg in data:
+        line = (
+            f"{msg.get('datetime', '')} | "
+            f"{msg.get('number', '')} | "
+            f"{msg.get('type', '')} | "
+            f"{msg.get('message', '')}"
+        )
+
+        pdf.drawRightString(right_x, y, safe_text(line, 115))
         y -= 18
 
         if y < 50:
             pdf.showPage()
-            pdf.setFont("Helvetica", 10)
+            pdf.setFont(font_name, 10)
             y = 750
 
     pdf.save()
