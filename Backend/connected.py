@@ -5,8 +5,7 @@ from flask import Blueprint, request, jsonify, redirect
 from urllib.parse import quote
 
 from acquisition import pull_whatsapp_evidence
-from database import create_next_case, create_case_record
-
+from database import create_next_case, create_case_record, assign_case_owner
 try:
     from decrypt import decrypt_whatsapp_db
 except Exception:
@@ -302,7 +301,7 @@ def choose_target_serial(method, ip_port, dev_after):
     }
 
 
-def perform_connect(method, ip_port="", adb_path=None):
+def perform_connect(method, ip_port="", adb_path=None, user_id=None):
     logs = []
 
     new_case = create_next_case()
@@ -439,6 +438,7 @@ def perform_connect(method, ip_port="", adb_path=None):
         }, 403
 
     add_log(logs, "SUCCESS", "Root access confirmed.", "root_check")
+    assign_case_owner(case_id, user_id)
 
     return {
         "ok": True,
@@ -658,6 +658,7 @@ def api_device_connect_and_open():
     wadecrypt_path = request.args.get("wadecrypt_path") or "wadecrypt"
     timeout_sec = int(request.args.get("timeout_sec") or 180)
     frontend_base = (request.args.get("frontend_base") or "").strip()
+    user_id = request.args.get("user_id") or None
 
     if not frontend_base:
         return jsonify({
@@ -668,7 +669,8 @@ def api_device_connect_and_open():
     conn_result, conn_status = perform_connect(
         method=method,
         ip_port=ip_port,
-        adb_path=adb_path
+        adb_path=adb_path,
+        user_id=user_id
     )
 
     if conn_status != 200:

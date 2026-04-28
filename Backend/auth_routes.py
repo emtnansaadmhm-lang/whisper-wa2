@@ -9,7 +9,8 @@ from database import (
     get_all_active_users,
     reject_request,
     deactivate_user,
-    get_admin_stats
+    get_admin_stats,
+    search_users
 )
 
 bp_auth = Blueprint("bp_auth", __name__)
@@ -66,10 +67,10 @@ def register_request():
     department = (body.get("department") or "").strip()
     reason = (body.get("reason") or "").strip()
 
-    if not name or not email or not password or not reason:
+    if not name or not email or not password:
         return jsonify({
             "success": False,
-            "message": "Name, email, password, and reason are required"
+            "message": "Name, email, password are required"
         }), 400
 
     existing_user = User.query.filter_by(email=email).first()
@@ -175,7 +176,27 @@ def admin_reject_request(current_user, request_id):
         "success": True,
         "message": "Request rejected successfully"
     }), 200
+@bp_auth.route("/api/users/list", methods=["GET"])
+def users_list():
+    query = (request.args.get("q") or "").strip()
 
+    if query:
+        users = search_users(query)
+    else:
+        users = get_all_active_users()
+
+    return jsonify({
+        "success": True,
+        "users": [
+            {
+                "id": u.id,
+                "name": u.name,
+                "email": u.email,
+                "role": u.role
+            }
+            for u in users if u.is_active
+        ]
+    }), 200
 
 @bp_auth.route("/api/admin/users", methods=["GET"])
 @admin_required

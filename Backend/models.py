@@ -88,3 +88,31 @@ class Case(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     case_name = db.Column(db.String(150), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class CaseInvestigator(db.Model):
+    __tablename__ = "case_investigators"
+
+    id = db.Column(db.Integer, primary_key=True)
+    case_name = db.Column(db.String(150), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    is_owner = db.Column(db.Boolean, default=False)
+    added_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class EvidenceHash(db.Model):
+    __tablename__ = "evidence_hashes"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    case_name = db.Column(db.String(150), nullable=False)
+    file_name = db.Column(db.String(150), nullable=False)
+
+    sha256_hash = db.Column(db.String(64), nullable=False)
+    file_size = db.Column(db.String(50), nullable=True)
+    file_path = db.Column(db.String(300), nullable=True)
+    device_sha256_hash = db.Column(db.String(64), nullable=True)
+    local_sha256_hash = db.Column(db.String(64), nullable=True)
+    integrity_status = db.Column(db.String(30), nullable=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)

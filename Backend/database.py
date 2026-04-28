@@ -3,7 +3,7 @@ Database Helper Functions for Whisper-WA
 """
 
 import os
-from models import db, User, AccountRequest, Case
+from models import db, User, AccountRequest, Case, CaseInvestigator, EvidenceHash
 from datetime import datetime
 
 
@@ -185,10 +185,6 @@ def cleanup_old_requests(days=30):
     return count
 
 
-# =========================
-# CASE HELPERS
-# =========================
-
 def _extract_case_number(case_name):
     try:
         if not case_name:
@@ -264,14 +260,13 @@ def generate_next_case_id(base_cases_dir="Cases"):
     """
     max_num = 0
 
-    # Check DB
+    
     db_cases = Case.query.all()
     for c in db_cases:
         n = _extract_case_number(c.case_name)
         if n is not None and n > max_num:
             max_num = n
 
-    # Check folders
     if os.path.exists(base_cases_dir):
         for name in os.listdir(base_cases_dir):
             full_path = os.path.join(base_cases_dir, name)
@@ -290,3 +285,135 @@ def create_next_case(base_cases_dir="Cases"):
     """
     case_name = generate_next_case_id(base_cases_dir=base_cases_dir)
     return create_case_record(case_name)
+
+
+def assign_case_owner(case_name, user_id):
+    if not user_id:
+        return
+
+    existing = CaseInvestigator.query.filter_by(
+        case_name=case_name,
+        user_id=user_id
+    ).first()
+
+    if not existing:
+        db.session.add(CaseInvestigator(
+            case_name=case_name,
+            user_id=user_id,
+            is_owner=True
+        ))
+        db.session.commit()
+
+
+def add_investigator_to_case(case_name, user_id):
+    existing = CaseInvestigator.query.filter_by(
+        case_name=case_name,
+        user_id=user_id
+    ).first()
+
+    if not existing:
+        db.session.add(CaseInvestigator(
+            case_name=case_name,
+            user_id=user_id,
+            is_owner=False
+        ))
+        db.session.commit()
+
+
+def get_cases_for_user(user_id, role):
+    if role == "admin":
+        return get_all_cases()
+
+    if not user_id:
+        return []
+
+    links = CaseInvestigator.query.filter_by(user_id=user_id).all()
+    case_names = [l.case_name for l in links]
+
+    if not case_names:
+        return []
+
+    return Case.query.filter(
+        Case.case_name.in_(case_names)
+    ).order_by(Case.created_at.desc()).all()
+
+
+def get_case_investigators(case_name):
+    return CaseInvestigator.query.filter_by(case_name=case_name).all()
+
+def add_user_to_case(case_name, user_id):
+    if not case_name or not user_id:
+        return False
+
+    existing = CaseInvestigator.query.filter_by(
+        case_name=case_name,
+        user_id=user_id
+    ).first()
+
+    if existing:
+        return True
+
+    db.session.add(CaseInvestigator(
+        case_name=case_name,
+        user_id=user_id,
+        is_owner=False
+    ))
+    db.session.commit()
+    return True
+
+def get_investigators_details(case_name):
+    """
+    جلب تفاصيل المحققين (الاسم، الآي دي) المرتبطين بقضية معينة
+    """
+    links = CaseInvestigator.query.filter_by(case_name=case_name).all()
+    users_info = []
+    
+    for link in links:
+        user = get_user_by_id(link.user_id) 
+        if user:
+            users_info.append({
+                "id": user.id,
+                "name": user.name,
+                "email": user.email,
+                "is_owner": link.is_owner
+            })
+    return users_info
+
+def remove_user_from_case(case_name, user_id):
+    """
+    حذف ارتباط محقق بقضية (لا يمكن حذف المالك الأساسي)
+    """
+    if not case_name or not user_id:
+        return False
+
+    link = CaseInvestigator.query.filter_by(
+        case_name=case_name,
+        user_id=user_id
+    ).first()
+
+    if not link:
+        return False
+
+
+    if link.is_owner:
+        return False
+
+    db.session.delete(link)
+    db.session.commit()
+    return True
+def save_evidence_hash(case_name, file_name, file_hash, file_size, file_path,
+                       device_hash=None, local_hash=None, integrity_status=None):
+
+    record = EvidenceHash(
+        case_name=case_name,
+        file_name=file_name,
+        sha256_hash=file_hash,
+        device_sha256_hash=device_hash,
+        local_sha256_hash=local_hash,
+        integrity_status=integrity_status,
+        file_size=file_size,
+        file_path=file_path
+    )
+
+    db.session.add(record)
+    db.session.commit()

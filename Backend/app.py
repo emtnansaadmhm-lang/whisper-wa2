@@ -1,6 +1,7 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, send_from_directory
 from flask_cors import CORS
 from datetime import datetime
+import os
 
 from connected import bp_connected
 from messages_api import messages_api
@@ -29,6 +30,14 @@ def health_check():
         "service": "Whisper-WA Backend",
         "timestamp": datetime.now().isoformat()
     })
+
+# =========================
+# Serve WhatsApp Media Files
+# =========================
+@app.route("/api/media/<case_id>/<path:filename>", methods=["GET"])
+def serve_case_media(case_id, filename):
+    media_dir = os.path.join("Cases", case_id, "Evidence", "Media", "Media")
+    return send_from_directory(media_dir, filename)
 
 app.register_blueprint(bp_connected)
 app.register_blueprint(messages_api)

@@ -4,7 +4,6 @@ from analysis import analyze_whatsapp_data
 
 bp_analysis = Blueprint("bp_analysis", __name__)
 
-
 @bp_analysis.route("/api/analysis/<case_id>", methods=["GET"])
 def get_case_analysis(case_id):
     try:
