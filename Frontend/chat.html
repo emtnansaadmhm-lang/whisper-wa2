@@ -640,8 +640,9 @@
     <div class="workspace-grid">
       <aside class="glass-panel report-sidebar">
         <div class="sidebar-header">
-          <h3 id="txt-draft-title"><i class="fa-solid fa-file-contract"></i> مسودة التقرير</h3>
-
+<h3 id="txt-draft-title">
+  <i class="fa-solid fa-shield-halved"></i> تقرير الأدلة
+</h3>
           <div class="sidebar-actions">
             <button class="btn-secondary" id="btn-export" type="button">
               <i class="fa-solid fa-file-arrow-down"></i> <span id="txt-export">تنزيل التقرير</span>
@@ -915,9 +916,9 @@ let availableUsers = [];
       // إصلاح بقة "مسودة التقرير" - استخدام innerHTML للحفاظ على الأيقونة
       const draftTitle = document.getElementById("txt-draft-title");
       if (draftTitle) {
-        draftTitle.innerHTML = isAr 
-          ? '<i class="fa-solid fa-file-contract"></i> مسودة التقرير' 
-          : '<i class="fa-solid fa-file-contract"></i> Report Draft';
+        draftTitle.innerHTML = isAr  
+  ? '<i class="fa-solid fa-shield-halved"></i> تقرير الأدلة' 
+  : '<i class="fa-solid fa-shield-halved"></i> Evidence Report';
       }
 
       setText("txt-export", isAr ? "تنزيل التقرير" : "Download Report");
@@ -984,6 +985,7 @@ if (btnConfirmAddUser) btnConfirmAddUser.textContent = isAr ? "إضافة" : "Ad
     }
 
       updateFilterLabels();
+      updateCaseBanner(caseTitle.textContent, caseSubtitle.textContent);
       if (suggestionsBox && suggestionsBox.classList.contains("show")) renderSuggestions(searchInput ? searchInput.value.trim() : "");
     }
 
@@ -1177,8 +1179,9 @@ if (btnConfirmAddUser) btnConfirmAddUser.textContent = isAr ? "إضافة" : "Ad
 
     function getSpoofingMatch(urlOrText = "") {
       const urls = extractUrls(urlOrText);
-      const candidates = urls.length ? urls : [urlOrText];
+if (!urls.length) return null;
 
+const candidates = urls;
       for (const raw of candidates) {
         const domain = extractDomain(raw) || String(raw || "").toLowerCase();
         if (!domain || FAMOUS_DOMAINS.includes(domain)) continue;
@@ -1479,20 +1482,22 @@ function messageMatchesCurrentFilters(m) {
 function updateCaseBanner(title, desc) {
   const bannerTitle = document.getElementById("caseTitle");
   const bannerDesc = document.getElementById("caseSubtitle");
-  
-  const lang = localStorage.getItem("lang") || "ar";
 
-  // 1. استخراج الأرقام فقط (رقم القضية وعدد القضايا)
-  const pureId = title.match(/\d+/) ? title.match(/\d+/)[0] : "-";
-  const pureCount = desc.match(/\d+/) ? desc.match(/\d+/)[0] : "0";
+  const lang = document.documentElement.lang || localStorage.getItem("lang") || "ar";
+  const isAr = lang === "ar";
 
-  // 2. الطباعة الصريحة حسب اللغة
-  if (lang === "ar") {
-    if (bannerTitle) bannerTitle.innerText = "القضية الحالية: " + "Case_" + pureId;
-    if (bannerDesc) bannerDesc.innerText = "عدد القضايا المحفوظة: " + pureCount;
-  } else {
-    if (bannerTitle) bannerTitle.innerText = "Current Case: " + "Case_" + pureId;
-    if (bannerDesc) bannerDesc.innerText = "Saved Cases Count: " + pureCount;
+  const pureId = title && title.match(/\d+/) ? title.match(/\d+/)[0] : "-";
+
+  if (bannerTitle) {
+    bannerTitle.innerText = isAr
+      ? "القضية الحالية: Case_" + pureId
+      : "Current Case: Case_" + pureId;
+  }
+
+  if (bannerDesc) {
+    bannerDesc.innerText = isAr
+      ? "تم تحميل بيانات القضية بنجاح"
+      : "Case data loaded successfully";
   }
 }
     function chatMatchesQuery(chat, q) {
