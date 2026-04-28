@@ -1,6 +1,7 @@
 import os
 import subprocess
 import hashlib
+from database import save_evidence_hash
 
 def _adb():
     local_adb = os.path.join(os.path.dirname(__file__), "adb.exe")
@@ -89,6 +90,13 @@ def pull_whatsapp_evidence(case_id="Case_001"):
 
         db_hash = calculate_sha256(local_db_path)
         db_size = os.path.getsize(local_db_path)
+        save_evidence_hash(
+    case_id,
+    "msgstore.db.crypt14",
+    db_hash,
+    f"{db_size / 1024:.2f} KB",
+    local_db_path
+)
 
         results.append({
             "file": "msgstore.db.crypt14",
@@ -172,6 +180,13 @@ def pull_whatsapp_evidence(case_id="Case_001"):
 
         key_hash = calculate_sha256(local_key_path)
         key_size = os.path.getsize(local_key_path)
+        save_evidence_hash(
+    case_id,
+    "key",
+    key_hash,
+    f"{key_size / 1024:.2f} KB",
+    local_key_path
+)
 
         results.append({
             "file": "key",
