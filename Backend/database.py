@@ -3,7 +3,7 @@ Database Helper Functions for Whisper-WA
 """
 
 import os
-from models import db, User, AccountRequest, Case, CaseInvestigator
+from models import db, User, AccountRequest, Case, CaseInvestigator, EvidenceHash
 from datetime import datetime
 
 
@@ -401,3 +401,15 @@ def remove_user_from_case(case_name, user_id):
     db.session.delete(link)
     db.session.commit()
     return True
+
+def save_evidence_hash(case_name, file_name, file_hash, file_size, file_path):
+    record = EvidenceHash(
+        case_name=case_name,
+        file_name=file_name,
+        sha256_hash=file_hash,
+        file_size=file_size,
+        file_path=file_path
+    )
+
+    db.session.add(record)
+    db.session.commit()
