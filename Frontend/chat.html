@@ -1281,6 +1281,16 @@ if (btnConfirmAddUser) btnConfirmAddUser.textContent = isAr ? "إضافة" : "Ad
           (text.match(/\b\S+\.(pdf|doc|docx|xls|xlsx|ppt|pptx|zip|rar|7z|apk|exe|msi|bat|cmd|js|vbs|scr|csv|txt)\b/gi) || [])
             .forEach(file => addSuggestion(file, "ملف", chat.id, m.id));
 
+            // 🔥 ملفات الميديا (PDF من واتساب وغيره)
+if (m.media_url && (m.media_type === "document" || m.media_type === "file")) {
+  addSuggestion(
+    m.media_name || m.media_url,
+    "ملف",
+    chat.id,
+    m.id
+  );
+}
+
           (text.match(/\b\S+\.(jpg|jpeg|png|gif|webp|bmp)\b/gi) || [])
             .forEach(img => addSuggestion(img, "صورة", chat.id, m.id));
 
@@ -1420,29 +1430,50 @@ if (btnConfirmAddUser) btnConfirmAddUser.textContent = isAr ? "إضافة" : "Ad
     function textHasImage(text = "") { return /\b\S+\.(jpg|jpeg|png|gif|webp|bmp)\b/i.test(text); }
     function textHasLocation(text = "") { return /(\b(location|gps|map|pin)\b|موقع|لوكيشن|إحداثيات|احداثيات|خريطة|-?\d{1,3}\.\d+\s*,\s*-?\d{1,3}\.\d+)/i.test(text); }
 
-    function messageMatchesTagText(text, tag) {
-      if (tag === "all") return true;
-      if (tag === "url") return textHasUrl(text);
-      if (tag === "spoofing") return isSpoofingText(text);
-      if (tag === "keywords") return textHasSuspiciousKeyword(text);
-      if (tag === "foreign") return textHasForeignNumber(text);
-      if (tag === "files") return textHasFile(text);
-      if (tag === "images") return textHasImage(text);
-      return true;
-    }
+function messageMatchesTagText(msg, tag) {
+  const text = String(msg?.text || "");
 
-    function messageMatchesCurrentFilters(m) {
-      const text = String(m?.text || "");
-      const q = String(currentSearchQuery || "").trim().toLowerCase();
-      if (!messageMatchesTagText(text, activeTagFilter)) return false;
-      if (!q) return true;
-      return text.toLowerCase().includes(q);
-    }
+  if (tag === "all") return true;
+  if (tag === "url") return textHasUrl(text);
+  if (tag === "spoofing") return isSpoofingText(text);
+  if (tag === "keywords") return textHasSuspiciousKeyword(text);
+  if (tag === "foreign") return textHasForeignNumber(text);
+  if (tag === "files") {
+  return (
+    textHasFile(text) ||
+    msg?.media_type === "document" ||
+    msg?.media_type === "file"
+  );
+}
+
+  // 🔥 أهم تعديل
+  if (tag === "images") {
+    return msg?.media_type === "image" || textHasImage(text);
+  }
+
+  return true;
+}
+
+function messageMatchesCurrentFilters(m) {
+  const text = String(m?.text || "");
+  const mediaName = String(m?.media_name || "");
+  const mediaUrl = String(m?.media_url || "");
+  const q = String(currentSearchQuery || "").trim().toLowerCase();
+
+  if (!messageMatchesTagText(m, activeTagFilter)) return false;
+  if (!q) return true;
+
+  return (
+    text.toLowerCase().includes(q) ||
+    mediaName.toLowerCase().includes(q) ||
+    mediaUrl.toLowerCase().includes(q)
+  );
+}
 
     function chatMatchesTag(chat, tag) {
       if (tag === "all") return true;
       const texts = (chat.messages || []).map(m => m.text || "");
-      return texts.some(t => messageMatchesTagText(t, tag));
+      return (chat.messages || []).some(m => messageMatchesTagText(m, tag));
     }
 
 function updateCaseBanner(title, desc) {
@@ -1484,8 +1515,7 @@ function updateCaseBanner(title, desc) {
       if (activeTagFilter !== "all") {
         return (chat.messages || []).some(m => {
           const t = String(m.text || "").toLowerCase();
-          return messageMatchesTagText(t, activeTagFilter) && t.includes(qLower);
-        });
+return messageMatchesTagText(m, activeTagFilter) && t.includes(qLower);        });
       }
 
       if (isNumberQuery) {
@@ -1589,8 +1619,8 @@ function updateCaseBanner(title, desc) {
 
       let firstMatchedBox = null;
       const messagesToRender = (chat.messages || []).filter(m => {
-        if (!currentSearchQuery) return true;
-        return messageMatchesCurrentFilters(m);
+if (!currentSearchQuery) return messageMatchesTagText(m, activeTagFilter);
+return messageMatchesCurrentFilters(m);
       });
 
       messagesToRender.forEach((m) => {
@@ -1621,11 +1651,42 @@ if (selectedMessageIds.has(selectionKey)) {
             </div>`
           : "";
 
-        box.innerHTML = `
-          <p>${highlightText(text, currentSearchQuery)}</p>
-          ${spoofNote}
-          <span class="msg-time">${escapeHtml(timeOnly)}</span>
-        `;
+let mediaHTML = "";
+
+if (m.media_url) {
+  if (m.media_type === "image") {
+    mediaHTML = `
+      <img src="${API_BASE}${m.media_url}" 
+           style="max-width:220px;border-radius:12px;margin-top:8px;display:block;">
+    `;
+  } else if (m.media_type === "video") {
+    mediaHTML = `
+      <video controls style="max-width:240px;border-radius:12px;margin-top:8px;display:block;">
+        <source src="${API_BASE}${m.media_url}">
+      </video>
+    `;
+  } else if (m.media_type === "audio" || m.media_type === "audio_recorded") {
+    mediaHTML = `
+      <audio controls style="margin-top:8px;display:block;">
+        <source src="${API_BASE}${m.media_url}">
+      </audio>
+    `;
+  } else if (m.media_type === "document") {
+    mediaHTML = `
+      <a href="${API_BASE}${m.media_url}" target="_blank"
+         style="display:inline-block;margin-top:8px;color:#8fd9a8;">
+        📄 ${escapeHtml(m.media_name || "Open File")}
+      </a>
+    `;
+  }
+}
+
+box.innerHTML = `
+  ${text ? `<p>${highlightText(text, currentSearchQuery)}</p>` : ""}
+  ${mediaHTML}
+  ${spoofNote}
+  <span class="msg-time">${escapeHtml(timeOnly)}</span>
+`;
 
         if ((focusedMessageId !== null && String(m.id) === String(focusedMessageId)) || (hasMatch && !firstMatchedBox)) {
           if (!firstMatchedBox) firstMatchedBox = box;
@@ -1760,17 +1821,36 @@ const res = await fetch(`${API_BASE}/api/cases?user_id=${encodeURIComponent(user
       loadCaseInvestigators(caseId);
     }
 
-function appendRow({ key, text, type, number, datetime }) {
+function appendRow({ key, text, type, number, datetime, media_url, media_type, media_name }) {
   if (reportRowsMap.has(key)) return;
 
-  reportRowsMap.set(key, { key, text, type, number, datetime });
+  reportRowsMap.set(key, { key, text, type, number, datetime, media_url, media_type, media_name });
 
   const tr = document.createElement("tr");
   tr.dataset.rowKey = key;
 
   const tdMsg = document.createElement("td");
   tdMsg.className = "cell-msg";
-  tdMsg.textContent = text;
+
+  if (text) {
+    const p = document.createElement("div");
+    p.textContent = text;
+    tdMsg.appendChild(p);
+  }
+
+  if (media_url && media_type === "image") {
+    const img = document.createElement("img");
+    img.src = `${API_BASE}${media_url}`;
+    img.style.maxWidth = "120px";
+    img.style.borderRadius = "8px";
+    img.style.marginTop = "6px";
+    img.style.display = "block";
+    tdMsg.appendChild(img);
+  }
+
+  if (!text && !(media_url && media_type === "image")) {
+    tdMsg.textContent = "Media / Attachment";
+  }
 
   const tdType = document.createElement("td");
   const badge = document.createElement("span");
@@ -1813,37 +1893,34 @@ function appendRow({ key, text, type, number, datetime }) {
 addBtn.addEventListener("click", () => {
   const chat = chatsData.find(c => c.id === selectedChatId);
   if (!chat) return;
-
   const selectedKeysForThisChat = [...selectedMessageIds].filter(k => k.startsWith(`${chat.id}||`));
   const hasSelectedForThisChat = selectedKeysForThisChat.length > 0;
 
-  if (hasSelectedForThisChat) {
-    chat.messages
-      .filter(m => selectedMessageIds.has(`${chat.id}||${m.id}`))
-      .forEach(m => appendRow({
-        key: `${chat.id}||${m.id}`,
-        text: m.text,
-        type: m.type,
-        number: chat.number,
-        datetime: m.datetime
-      }));
-  } else {
-    chat.messages.forEach(m => appendRow({
-      key: `${chat.id}||${m.id}`,
-      text: m.text,
-      type: m.type,
-      number: chat.number,
-      datetime: m.datetime
-    }));
-  }
+  const msgs = hasSelectedForThisChat
+    ? chat.messages.filter(m => selectedMessageIds.has(`${chat.id}||${m.id}`))
+    : chat.messages;
+
+  msgs.forEach(m => appendRow({
+    key: `${chat.id}||${m.id}`,
+    text: m.text,
+    type: m.type,
+    number: chat.number,
+    datetime: m.datetime,
+    media_url: m.media_url,
+    media_type: m.media_type,
+    media_name: m.media_name
+  }));
 });
 
 function collectReportRows() {
   return [...reportRowsMap.values()].map(row => ({
-    message: row.text,
+    message: row.text || (row.media_type === "image" ? "[Image Evidence]" : "Media / Attachment"),
     type: row.type === "sent" ? "Sent" : "Received",
     number: row.number,
-    datetime: row.datetime
+    datetime: row.datetime,
+    media_url: row.media_url,
+    media_type: row.media_type,
+    media_name: row.media_name
   }));
 }
 
