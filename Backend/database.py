@@ -300,7 +300,7 @@ def assign_case_owner(case_name, user_id):
         db.session.add(CaseInvestigator(
             case_name=case_name,
             user_id=user_id,
-            is_owner=True
+            
         ))
         db.session.commit()
 
@@ -315,7 +315,7 @@ def add_investigator_to_case(case_name, user_id):
         db.session.add(CaseInvestigator(
             case_name=case_name,
             user_id=user_id,
-            is_owner=False
+            
         ))
         db.session.commit()
 
@@ -356,7 +356,7 @@ def add_user_to_case(case_name, user_id):
     db.session.add(CaseInvestigator(
         case_name=case_name,
         user_id=user_id,
-        is_owner=False
+        
     ))
     db.session.commit()
     return True
@@ -375,7 +375,7 @@ def get_investigators_details(case_name):
                 "id": user.id,
                 "name": user.name,
                 "email": user.email,
-                "is_owner": link.is_owner
+                
             })
     return users_info
 
@@ -395,18 +395,20 @@ def remove_user_from_case(case_name, user_id):
         return False
 
 
-    if link.is_owner:
-        return False
 
     db.session.delete(link)
     db.session.commit()
     return True
+def save_evidence_hash(case_name, file_name, file_hash, file_size, file_path,
+                       device_hash=None, local_hash=None, integrity_status=None):
 
-def save_evidence_hash(case_name, file_name, file_hash, file_size, file_path):
     record = EvidenceHash(
         case_name=case_name,
         file_name=file_name,
         sha256_hash=file_hash,
+        device_sha256_hash=device_hash,
+        local_sha256_hash=local_hash,
+        integrity_status=integrity_status,
         file_size=file_size,
         file_path=file_path
     )
