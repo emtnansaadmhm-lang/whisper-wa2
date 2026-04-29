@@ -670,8 +670,7 @@
                 <th id="th-type">النوع</th>
                 <th id="th-num">الرقم</th>
                 <th id="th-time">التاريخ والوقت</th>
-                <th id="th-remove">حذف</th>
-              </tr>
+<th id="th-remove" style="cursor:pointer;">حذف</th>              </tr>
             </thead>
             <tbody id="reportTbody"></tbody>
           </table>
@@ -682,11 +681,10 @@
         <div class="search-area">
          <div class="case-banner" id="caseBanner">
             <div class="case-banner-left">
-              <i id="case-icon" class="fa-solid fa-folder-open"></i>
+              <i id="case-icon" class="fab fa-whatsapp" style="color:#25D366;"></i>
               <div>
                 <div class="case-title" id="caseTitle">جاري جلب بيانات القضية...</div>
-                <div class="case-subtitle" id="caseSubtitle">تحقق من قاعدة بيانات الجهاز المستهدف</div>
-              </div>
+<div class="case-subtitle" id="caseSubtitle"></div>              </div>
             </div>
 
             <div class="case-banner-actions">
@@ -772,55 +770,78 @@
     const urlParams = new URLSearchParams(window.location.search);
     const caseId = urlParams.get('case_id');
 
-    // الدالة المعدلة لجلب ID القضية ورقم الواتساب معاً
-    async function refreshHeaderWithRealNumber(cId) {
-        try {
-            const res = await fetch(`${API_BASE}/api/case-info/${cId}`);
-            const data = await res.json();
-            
-            if (data.ok) {
-                // استهداف عنوان القضية في البانر العلوي
-                const caseTitleElement = document.getElementById("caseTitle");
-                const caseIcon = document.getElementById("case-icon");
-
-                if (caseTitleElement) {
-                    // عرض: ID القضية | رقم الهاتف
-                    caseTitleElement.innerText = `${data.case_id} | ${data.owner_number}`;
-                }
-
-                if (caseIcon) {
-                    // تغيير الأيقونة إلى شعار واتساب وتلوينه بالأخضر
-                    caseIcon.className = "fab fa-whatsapp";
-                    caseIcon.style.color = "#25D366";
-                }
-                
-                // تحديث النص السفلي الصغير (Subtitle)
-                const caseSubtitle = document.getElementById("caseSubtitle");
-                if (caseSubtitle) {
-                    caseSubtitle.innerText = "تم التحقق من بيانات الحساب المستهدف بنجاح";
-                }
-            }
-        } catch (e) {
-            console.error("Could not fetch real owner number", e);
+async function refreshHeaderWithRealNumber(cId) {
+    try {
+        const res = await fetch(`${API_BASE}/api/case-info/${cId}`);
+        const data = await res.json();
+        
+        if (data.ok) {
             const caseTitleElement = document.getElementById("caseTitle");
+            const caseIcon = document.getElementById("case-icon");
+
             if (caseTitleElement) {
-                caseTitleElement.innerText = `قضية: ${cId} (خطأ في جلب الرقم)`;
+                caseTitleElement.innerText = `${data.case_id} | ${data.owner_number}`;
             }
+
+            if (caseIcon) {
+                caseIcon.className = "fab fa-whatsapp";
+                caseIcon.style.color = "#25D366";
+            }
+        }
+
+    } catch (e) {
+        console.error("Could not fetch real owner number", e);
+        const caseTitleElement = document.getElementById("caseTitle");
+        if (caseTitleElement) {
+            caseTitleElement.innerText = `قضية: ${cId} (خطأ في جلب الرقم)`;
         }
     }
+}
 
-    // استدعاء الدالة فور تحميل الصفحة إذا كان الـ case_id موجوداً
-    window.addEventListener("DOMContentLoaded", () => {
-        if (caseId) {
-            refreshHeaderWithRealNumber(caseId);
-        }
-    });
+async function refreshCaseIntegrity(cId) {
+  const caseSubtitle = document.getElementById("caseSubtitle");
+  if (!caseSubtitle) return;
 
-    let selectedCaseId =
-      urlParams.get("case_id") ||
-      localStorage.getItem("CURRENT_CASE_ID") ||
-      localStorage.getItem("case_id") ||
-      null;
+  try {
+    const res = await fetch(`${API_BASE}/api/case-integrity/${cId}`);
+    const data = await res.json();
+
+    const isAr = document.documentElement.lang === "ar";
+
+    if (data.integrity === "Verified") {
+caseSubtitle.innerHTML = isAr
+  ? `<span style="color:#9fb3a8;">البيانات موثوقة</span>`
+  : `<span style="color:#9fb3a8;">Data Integrity Verified</span>`;
+    } else if (data.integrity === "Not Verified") {
+      caseSubtitle.innerText = isAr
+        ? "تم تحميل الأدلة · فشل التحقق 🚨"
+        : "Evidence Loaded · Integrity Failed 🚨";
+    } else {
+      caseSubtitle.innerText = isAr
+        ? "تم تحميل الأدلة · حالة السلامة غير معروفة"
+        : "Evidence Loaded · Integrity Unknown";
+    }
+
+  } catch (e) {
+    caseSubtitle.innerText = "Evidence Loaded · Integrity Unknown";
+  }
+}
+
+  window.addEventListener("DOMContentLoaded", () => {
+  if (caseId) {
+    refreshHeaderWithRealNumber(caseId);
+    refreshCaseIntegrity(caseId);
+  }
+});
+
+let selectedCaseId = urlParams.get("case_id") || null;
+
+if (!selectedCaseId) {
+  selectedCaseId =
+    localStorage.getItem("CURRENT_CASE_ID") ||
+    localStorage.getItem("case_id") ||
+    null;
+}
 
     if (selectedCaseId) {
       localStorage.setItem("case_id", selectedCaseId);
@@ -830,6 +851,7 @@
     let selectedChatId = null;
     let currentSearchQuery = "";
     const selectedMessageIds = new Set();
+    const selectedChatIds = new Set();
     const reportRowsMap = new Map();
 
     let suggestionPool = [];
@@ -838,6 +860,7 @@
 
     const tbody = document.getElementById("reportTbody");
     const addBtn = document.getElementById("txt-add-btn");
+    const thRemove = document.getElementById("th-remove");
     const messageView = document.getElementById("messageView");
     const chatListContainer = document.querySelector(".chat-list");
     const searchInput = document.getElementById("inp-search");
@@ -858,12 +881,41 @@ const addInvestigatorPanel = document.getElementById("addInvestigatorPanel");
 let selectedUserToAdd = null;
 let availableUsers = [];
 
+if (thRemove) {
+  thRemove.addEventListener("click", () => {
+    reportRowsMap.clear();
+    selectedMessageIds.clear();
+    selectedChatIds.clear();
+    tbody.innerHTML = "";
 
+    document.querySelectorAll(".msg.selected").forEach(box => {
+      box.classList.remove("selected");
+    });
+  });
+}
     function initHeaderForPage(pageName){
       const backBtn = document.getElementById("btnBack");
       const btnAccount = document.getElementById("btnAccount");
       const menu = document.getElementById("accountMenu");
       const logoutBtn = document.getElementById("menuLogout");
+      const menuAdmin = document.getElementById("menuAdmin");
+const menuAdminBadge = document.getElementById("menuAdminBadge");
+const avatarBadge = document.getElementById("avatarBadge");
+
+const role = (localStorage.getItem("userRole") || "").toLowerCase();
+
+if (menuAdmin) {
+  if (role === "admin") {
+    menuAdmin.classList.add("show");
+    menuAdmin.style.display = "flex";
+  } else {
+    menuAdmin.classList.remove("show");
+    menuAdmin.style.display = "none";
+  }
+}
+
+if (menuAdminBadge) menuAdminBadge.textContent = "0";
+if (avatarBadge) avatarBadge.classList.remove("show");
 
       if (!backBtn || !btnAccount || !menu) return;
 
@@ -909,8 +961,7 @@ let availableUsers = [];
       const langText = document.getElementById("langText");
 
       if (topSubtitle) topSubtitle.textContent = isAr ? "منصة التحليل الجنائي الرقمي" : "Digital Forensics Platform";
-      if (langText) langText.textContent = isAr ? "AR" : "EN";
-
+if (langText) langText.textContent = isAr ? "EN" : "AR";
       document.title = isAr ? "Whisper-WA | بناء التقرير" : "Whisper-WA | Report Builder";
       
       // إصلاح بقة "مسودة التقرير" - استخدام innerHTML للحفاظ على الأيقونة
@@ -985,7 +1036,7 @@ if (btnConfirmAddUser) btnConfirmAddUser.textContent = isAr ? "إضافة" : "Ad
     }
 
       updateFilterLabels();
-      updateCaseBanner(caseTitle.textContent, caseSubtitle.textContent);
+      if (selectedCaseId) refreshCaseIntegrity(selectedCaseId);
       if (suggestionsBox && suggestionsBox.classList.contains("show")) renderSuggestions(searchInput ? searchInput.value.trim() : "");
     }
 
@@ -1494,11 +1545,9 @@ function updateCaseBanner(title, desc) {
       : "Current Case: Case_" + pureId;
   }
 
-  if (bannerDesc) {
-    bannerDesc.innerText = isAr
-      ? "تم تحميل بيانات القضية بنجاح"
-      : "Case data loaded successfully";
-  }
+if (bannerDesc) {
+  // لا تسوي شي هنا 👈 خليه فاضي عشان integrity يكتب
+}
 }
     function chatMatchesQuery(chat, q) {
       const query = String(q || "").trim();
@@ -1587,7 +1636,7 @@ return messageMatchesTagText(m, activeTagFilter) && t.includes(qLower);        }
         item.dataset.chatId = chat.id;
 
         item.innerHTML = `
-          <input type="checkbox" checked>
+          <input type="checkbox" class="chat-select-box">
           <div class="chat-info">
             <h4>${escapeHtml(chat.name || chat.number || "Unknown")}</h4>
             <p>${escapeHtml(chat.last_message || "")}</p>
@@ -1602,6 +1651,20 @@ return messageMatchesTagText(m, activeTagFilter) && t.includes(qLower);        }
           item.classList.add("active");
           selectedChatId = chat.id;
           renderMessages(selectedChatId);
+        });
+        
+        const chatCheckbox = item.querySelector(".chat-select-box");
+
+        // Keep chat checkbox selection only as a pending selection.
+        // It will NOT add rows to the report until Add to Current Report is clicked.
+        chatCheckbox.checked = selectedChatIds.has(String(chat.id));
+
+        chatCheckbox.addEventListener("change", () => {
+          if (chatCheckbox.checked) {
+            selectedChatIds.add(String(chat.id));
+          } else {
+            selectedChatIds.delete(String(chat.id));
+          }
         });
 
         chatListContainer.appendChild(item);
@@ -1707,7 +1770,28 @@ box.addEventListener("click", () => {
     selectedMessageIds.add(selectionKey);
     box.classList.add("selected");
   }
-});
+}); // نهاية عرض الرسائل
+
+// 👇 هذا الكود الجديد
+const focusId =
+  new URLSearchParams(window.location.search).get("focus") ||
+  localStorage.getItem("FOCUS_MESSAGE_ID");
+
+if (focusId) {
+  setTimeout(() => {
+    const target = document.querySelector(`[data-msg-id="${focusId}"]`);
+
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+      target.classList.add("focused-hit");
+
+      setTimeout(() => {
+        target.classList.remove("focused-hit");
+        localStorage.removeItem("FOCUS_MESSAGE_ID");
+      }, 3000);
+    }
+  }, 400);
+} 
 
         messageView.appendChild(box);
       });
@@ -1730,22 +1814,24 @@ box.addEventListener("click", () => {
 async function loadCasesFromBackend() {
   try {
     const user = JSON.parse(localStorage.getItem("currentUser") || "{}");
-const role = localStorage.getItem("userRole") || "user";
-const userId = user.id || "";
+    const role = localStorage.getItem("userRole") || "user";
+    const userId = user.id || "";
 
-const res = await fetch(`${API_BASE}/api/cases?user_id=${encodeURIComponent(userId)}&role=${encodeURIComponent(role)}`);
+    const res = await fetch(`${API_BASE}/api/cases?user_id=${encodeURIComponent(userId)}&role=${encodeURIComponent(role)}`);
     const data = await res.json();
 
     if (data.ok && data.cases && data.cases.length > 0) {
       casesData = data.cases;
-      selectedCaseId = casesData[0].case_id;
 
-      
-     updateCaseBanner(selectedCaseId, String(casesData.length));
+      // لا نغير selectedCaseId إذا جاي من الرابط
+      if (!selectedCaseId) {
+        selectedCaseId = casesData[0].case_id;
+      }
 
+      updateCaseBanner(selectedCaseId, String(casesData.length));
 
-      if(typeof refreshHeaderWithRealNumber === 'function') {
-          refreshHeaderWithRealNumber(selectedCaseId);
+      if (typeof refreshHeaderWithRealNumber === "function") {
+        refreshHeaderWithRealNumber(selectedCaseId);
       }
     }
   } catch (e) {
@@ -1881,6 +1967,12 @@ function appendRow({ key, text, type, number, datetime, media_url, media_type, m
 
   removeBtn.addEventListener("click", () => {
     reportRowsMap.delete(key);
+    selectedMessageIds.delete(key);
+
+    const msgId = key.split("||")[1];
+    const msgBox = document.querySelector(`.msg[data-msg-id="${CSS.escape(String(msgId))}"]`);
+    if (msgBox) msgBox.classList.remove("selected");
+
     tr.remove();
   });
 
@@ -1896,25 +1988,45 @@ function appendRow({ key, text, type, number, datetime, media_url, media_type, m
 }
 
 addBtn.addEventListener("click", () => {
-  const chat = chatsData.find(c => c.id === selectedChatId);
-  if (!chat) return;
-  const selectedKeysForThisChat = [...selectedMessageIds].filter(k => k.startsWith(`${chat.id}||`));
-  const hasSelectedForThisChat = selectedKeysForThisChat.length > 0;
+  // 1) Add all messages from checked chats/numbers only when this button is clicked.
+  selectedChatIds.forEach(chatId => {
+    const chat = chatsData.find(c => String(c.id) === String(chatId));
+    if (!chat) return;
 
-  const msgs = hasSelectedForThisChat
-    ? chat.messages.filter(m => selectedMessageIds.has(`${chat.id}||${m.id}`))
-    : chat.messages;
+    (chat.messages || []).forEach(m => {
+      appendRow({
+        key: `${chat.id}||${m.id}`,
+        text: m.text,
+        type: m.type,
+        number: chat.number || chat.name,
+        datetime: m.datetime,
+        media_url: m.media_url,
+        media_type: m.media_type,
+        media_name: m.media_name
+      });
+    });
+  });
 
-  msgs.forEach(m => appendRow({
-    key: `${chat.id}||${m.id}`,
-    text: m.text,
-    type: m.type,
-    number: chat.number,
-    datetime: m.datetime,
-    media_url: m.media_url,
-    media_type: m.media_type,
-    media_name: m.media_name
-  }));
+  // 2) Add manually selected individual messages too.
+  selectedMessageIds.forEach(key => {
+    const [chatId, msgId] = key.split("||");
+    const chat = chatsData.find(c => String(c.id) === String(chatId));
+    if (!chat) return;
+
+    const msg = (chat.messages || []).find(m => String(m.id) === String(msgId));
+    if (!msg) return;
+
+    appendRow({
+      key,
+      text: msg.text,
+      type: msg.type,
+      number: chat.number || chat.name,
+      datetime: msg.datetime,
+      media_url: msg.media_url,
+      media_type: msg.media_type,
+      media_name: msg.media_name
+    });
+  });
 });
 
 function collectReportRows() {
@@ -2346,5 +2458,18 @@ async function removeInvestigator(userId) {
     }
 }
   </script>
+
+  <script>
+fetch("header.html")
+  .then(res => res.text())
+  .then(data => {
+    document.getElementById("header-placeholder").innerHTML = data;
+
+    // نشغل سكربت الهيدر (عشان الادمن يطلع)
+    const script = document.createElement("script");
+    script.src = "header.js";
+    document.body.appendChild(script);
+  });
+</script>
 </body>
 </html>
