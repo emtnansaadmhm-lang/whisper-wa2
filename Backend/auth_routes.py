@@ -32,6 +32,30 @@ def login():
     success, user, message = authenticate_user(email, password)
 
     if not success:
+        pending_request = AccountRequest.query.filter_by(
+            email=email,
+            status="pending"
+        ).first()
+
+        if pending_request:
+            return jsonify({
+                "success": False,
+                "status": "pending",
+                "message": "Your request is still pending admin approval."
+            }), 403
+
+        rejected_request = AccountRequest.query.filter_by(
+            email=email,
+            status="rejected"
+        ).first()
+
+        if rejected_request:
+            return jsonify({
+                "success": False,
+                "status": "rejected",
+                "message": "Your request has been rejected."
+            }), 403
+
         return jsonify({
             "success": False,
             "message": message
@@ -176,6 +200,8 @@ def admin_reject_request(current_user, request_id):
         "success": True,
         "message": "Request rejected successfully"
     }), 200
+
+
 @bp_auth.route("/api/users/list", methods=["GET"])
 def users_list():
     query = (request.args.get("q") or "").strip()
@@ -197,6 +223,7 @@ def users_list():
             for u in users if u.is_active
         ]
     }), 200
+
 
 @bp_auth.route("/api/admin/users", methods=["GET"])
 @admin_required
