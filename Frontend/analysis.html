@@ -19,6 +19,9 @@
       --glass-border: rgba(95, 191, 122, 0.3);
       --text-white:#ffffff;
       --text-muted:#c2dec9;
+      --danger:#ff6b6b;
+      --warning:#ffd166;
+      --info:#7dd3fc;
     }
 
     *{ box-sizing:border-box; margin:0; padding:0; }
@@ -104,6 +107,7 @@
     .muted{
       color: var(--text-muted);
       font-size: 0.85rem;
+      line-height:1.7;
     }
 
     .stat-grid{
@@ -143,15 +147,34 @@
     .stat .sub{
       color: rgba(255,255,255,0.75);
       font-size: 0.82rem;
-      white-space: pre-line;
+      white-space: normal;
       line-height: 1.7;
+    }
+
+    .risk-card{
+      border-color: rgba(255,255,255,0.10);
+    }
+
+    .risk-danger{
+      border-color: rgba(255, 77, 77, 0.35);
+      background: rgba(255, 77, 77, 0.08);
+    }
+
+    .risk-warn{
+      border-color: rgba(255, 193, 7, 0.35);
+      background: rgba(255, 193, 7, 0.08);
+    }
+
+    .risk-ok{
+      border-color: rgba(95,191,122,0.28);
+      background: rgba(95,191,122,0.08);
     }
 
     .list{
       display:flex;
       flex-direction:column;
       gap: 10px;
-      max-height: 280px;
+      max-height: 320px;
       overflow:auto;
       padding-left: 2px;
     }
@@ -165,6 +188,10 @@
       flex-direction:column;
       gap: 6px;
     }
+
+    .item.danger-border{ border-color: rgba(255,77,77,0.24); }
+    .item.warn-border{ border-color: rgba(255,193,7,0.24); }
+    .item.ok-border{ border-color: rgba(95,191,122,0.24); }
 
     .item .row{
       display:flex;
@@ -186,6 +213,17 @@
       background: rgba(95,191,122,0.12);
       white-space: nowrap;
     }
+
+    button.pill{
+      cursor:pointer;
+      font-family:'Tajawal',sans-serif;
+    }
+
+    button.pill:hover{
+      filter:brightness(1.15);
+      transform: translateY(-1px);
+    }
+
 
     .danger{
       background: rgba(255, 77, 77, 0.12);
@@ -212,6 +250,29 @@
       overflow-wrap:anywhere;
     }
 
+    .reason-list{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      margin-top:4px;
+    }
+
+    .reason{
+      font-size:0.75rem;
+      padding:4px 8px;
+      border-radius:999px;
+      color:#d8ffe4;
+      background:rgba(95,191,122,0.10);
+      border:1px solid rgba(95,191,122,0.20);
+    }
+
+    .url-spoof-note{
+      color:#ffd0d0;
+      font-size:0.8rem;
+      line-height:1.7;
+      margin-top:4px;
+    }
+
     .col-12{ grid-column: span 12; }
     .col-6{ grid-column: span 6; }
 
@@ -219,30 +280,22 @@
       .col-6{ grid-column: span 12; }
     }
 
-/* ===== Chat Style Scrollbar ===== */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: #5fbf7a rgba(20, 40, 30, 0.4);
-}
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: #5fbf7a rgba(20, 40, 30, 0.4);
+    }
 
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: rgba(20, 40, 30, 0.4);
-  border-radius: 20px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #5fbf7a;
-  border-radius: 20px;
-  border: 2px solid rgba(20, 40, 30, 0.7);
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #8fd9a8;
-}
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track {
+      background: rgba(20, 40, 30, 0.4);
+      border-radius: 20px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #5fbf7a;
+      border-radius: 20px;
+      border: 2px solid rgba(20, 40, 30, 0.7);
+    }
+    ::-webkit-scrollbar-thumb:hover { background: #8fd9a8; }
   </style>
 </head>
 
@@ -278,37 +331,29 @@
 
       <section class="panel col-6">
         <div class="panel-title">
-          <h4><i class="fa-solid fa-share-nodes"></i> <span id="txt-flow-title">Suspicious Conversation Flow</span></h4>
+          <h4><i class="fa-solid fa-share-nodes"></i> <span id="txt-flow-title">تسلسل المحادثة المشبوه</span></h4>
         </div>
         <div class="list" id="flowList"></div>
       </section>
 
       <section class="panel col-6">
         <div class="panel-title">
-          <h4><i class="fa-solid fa-bullseye"></i> <span id="txt-topmsg-title">Top Suspicious Message</span></h4>
+          <h4><i class="fa-solid fa-bullseye"></i> <span id="txt-topmsg-title">أكثر رسالة مشبوهة</span></h4>
         </div>
         <div class="list" id="topMessageList"></div>
       </section>
 
-      <section class="panel col-6">
+      <section class="panel col-12">
         <div class="panel-title">
           <h4><i class="fa-solid fa-link"></i> <span id="txt-urls-title">الروابط المستخرجة</span></h4>
           <span class="pill" id="urlsCountPill">0</span>
         </div>
-        <div class="list" id="urlsList"></div>
-      </section>
-
-      <section class="panel col-6">
-        <div class="panel-title">
-          <h4><i class="fa-solid fa-hashtag"></i> <span id="txt-numbers-title">الأرقام المستخرجة</span></h4>
-          <span class="pill" id="numbersCountPill">0</span>
-        </div>
-        <div class="list" id="numbersList"></div>
+        <div class="list" id="urlsList" style="max-height:360px;"></div>
       </section>
 
       <section class="panel col-12">
         <div class="panel-title">
-          <h4><i class="fa-solid fa-magnifying-glass"></i> <span id="txt-keywords-title">كلمات مهمة</span></h4>
+          <h4><i class="fa-solid fa-magnifying-glass"></i> <span id="txt-keywords-title">الكلمات المشبوهة</span></h4>
           <span class="muted" id="txt-keywords-note">مرات الظهور</span>
         </div>
         <div class="list" id="keywordsList"></div>
@@ -316,7 +361,7 @@
 
       <section class="panel col-12">
         <div class="panel-title">
-          <h4><i class="fa-solid fa-lightbulb"></i> <span id="txt-rec-title">Recommendations</span></h4>
+          <h4><i class="fa-solid fa-lightbulb"></i> <span id="txt-rec-title">التوصيات</span></h4>
         </div>
         <div class="list" id="recommendationsList"></div>
       </section>
@@ -330,7 +375,11 @@
     let analysisLoaded = false;
     let analysisLoading = false;
 
-    const caseId = localStorage.getItem("CURRENT_CASE_ID") || localStorage.getItem("case_id") || "";
+    const caseId =
+      new URLSearchParams(window.location.search).get("case_id") ||
+      localStorage.getItem("CURRENT_CASE_ID") ||
+      localStorage.getItem("case_id") ||
+      "";
 
     const UI = {
       ar: {
@@ -344,7 +393,7 @@
         recTitle: "التوصيات",
         urlsTitle: "الروابط المستخرجة",
         numbersTitle: "الأرقام المستخرجة",
-        keywordsTitle: "كلمات مهمة",
+        keywordsTitle: "الكلمات المشبوهة",
         keywordsNote: "مرات الظهور",
         s_total: "عدد الرسائل",
         s_first: "أول تواصل",
@@ -352,11 +401,14 @@
         s_summary: "ملخص التحليل",
         s_sent: "مرسل",
         s_recv: "مستلم",
+        s_risk: "تقييم الخطورة",
+        s_spoofing: "روابط مزيفة",
         times: "مرة",
         links: "روابط",
         numbers: "أرقام",
         emails: "بريد إلكتروني",
         keywords: "كلمات",
+        spoofing: "انتحال",
         hits: "مرات الظهور",
         a_most_contacted: "أكثر جهة تواصل",
         a_most_active: "أكثر محادثة نشاطًا",
@@ -364,16 +416,22 @@
         a_peak_hour: "أكثر ساعة نشاط",
         a_peak_day: "أكثر يوم نشاط",
         a_duration: "مدة التواصل",
-        a_ratio: "نسبة مرسل/مستلم",
         p_important: "مهم",
         p_warn: "تنبيه",
         p_ok: "مقبول",
         noData: "لا توجد بيانات تحليل",
-        noFlow: "لم يتم رصد تسلسل مشبوه",
+        noFlow: "لم يتم رصد تسلسل مشبوه قوي",
         noTopMessage: "لا توجد رسالة تستحق التصنيف كرسالة مشبوهة حاليًا",
         loading: "جاري تحميل التحليل...",
         failed: "فشل تحميل التحليل",
-        score: "درجة الاشتباه"
+        score: "درجة الاشتباه",
+        reasons: "الأسباب",
+        riskHigh: "مرتفع",
+        riskMedium: "متوسط",
+        riskLow: "منخفض",
+        riskClean: "لا توجد مؤشرات قوية",
+        possibleSpoof: "اشتباه انتحال",
+        resembles: "يشبه"
       },
       en: {
         title: "Whisper-WA | Analysis",
@@ -386,7 +444,7 @@
         recTitle: "Recommendations",
         urlsTitle: "Extracted URLs",
         numbersTitle: "Extracted Numbers",
-        keywordsTitle: "Important Keywords",
+        keywordsTitle: "Suspicious Keywords",
         keywordsNote: "Occurrences",
         s_total: "Total Messages",
         s_first: "First Contact",
@@ -394,11 +452,14 @@
         s_summary: "Analysis Summary",
         s_sent: "Sent",
         s_recv: "Received",
+        s_risk: "Risk Assessment",
+        s_spoofing: "Spoofed URLs",
         times: "times",
         links: "URLs",
         numbers: "Numbers",
         emails: "Emails",
         keywords: "Keywords",
+        spoofing: "Spoofing",
         hits: "Occurrences",
         a_most_contacted: "Most Contacted",
         a_most_active: "Most Active Chat",
@@ -406,16 +467,22 @@
         a_peak_hour: "Most active hour",
         a_peak_day: "Most active day",
         a_duration: "Communication span",
-        a_ratio: "Sent / Received ratio",
         p_important: "Important",
         p_warn: "Warning",
         p_ok: "OK",
         noData: "No analysis data",
-        noFlow: "No suspicious flow detected",
+        noFlow: "No strong suspicious flow detected",
         noTopMessage: "No message currently qualifies as suspicious",
         loading: "Loading analysis...",
         failed: "Failed to load analysis",
-        score: "Suspicion Score"
+        score: "Suspicion Score",
+        reasons: "Reasons",
+        riskHigh: "High",
+        riskMedium: "Medium",
+        riskLow: "Low",
+        riskClean: "No strong indicators",
+        possibleSpoof: "Possible spoofing",
+        resembles: "resembles"
       }
     };
 
@@ -427,6 +494,7 @@
         first_contact: "-",
         last_contact: "-",
         urls_count: 0,
+        spoofing_urls_count: 0,
         numbers_count: 0,
         emails_count: 0,
         keyword_hits_total: 0
@@ -441,8 +509,32 @@
       keywords: []
     };
 
+    function escapeHtml(text) {
+      return String(text ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
     function setPill(el, text){
       if (el) el.textContent = text;
+    }
+
+    function getRiskInfo(){
+      const t = UI[currentLang];
+      const hasDanger = raw.flags.some(f => (f.level || "") === "danger");
+      const hasWarn = raw.flags.some(f => (f.level || "") === "warn");
+      const spoofCount = raw.summary.spoofing_urls_count || raw.urls.filter(u => u.is_spoofing).length;
+
+      if (hasDanger || spoofCount > 0) {
+        return { label: t.riskHigh, cls: "risk-danger", pill: "danger" };
+      }
+      if (hasWarn) {
+        return { label: t.riskMedium, cls: "risk-warn", pill: "warn" };
+      }
+      return { label: t.riskClean, cls: "risk-ok", pill: "ok" };
     }
 
     function renderSummary(s){
@@ -452,35 +544,32 @@
 
       const firstVal = s.first_contact ? String(s.first_contact).split(" ")[0] : "-";
       const lastVal = s.last_contact ? String(s.last_contact).split(" ")[0] : "-";
+      const spoofCount = s.spoofing_urls_count || raw.urls.filter(u => u.is_spoofing).length;
 
-      const summaryLines = [
-        s.numbers_count ? `• ${s.numbers_count} ${t.numbers}` : "",
+      const detectedSummary = [
+        s.urls_count ? `• ${s.urls_count} ${t.links}` : "",
+        spoofCount ? `• ${spoofCount} ${t.spoofing}` : "",
         s.emails_count ? `• ${s.emails_count} ${t.emails}` : "",
         s.keyword_hits_total ? `• ${s.keyword_hits_total} ${t.keywords}` : ""
-      ].filter(Boolean).join("\n");
+      ].filter(Boolean).join("<br>");
 
       const cards = [
         { label: t.s_total, value: s.total_messages ?? 0, sub: `${t.s_sent}: ${s.sent ?? 0} | ${t.s_recv}: ${s.received ?? 0}` },
         { label: t.s_first, value: firstVal, sub: s.first_contact || "-" },
         { label: t.s_last, value: lastVal, sub: s.last_contact || "-" },
-   {
-  label: t.s_summary,
-  value: "",
-sub: [
-  s.urls_count ? `• ${s.urls_count} ${t.links}` : "",
-  s.numbers_count ? `• ${s.numbers_count} ${t.numbers}` : "",
-  s.emails_count ? `• ${s.emails_count} ${t.emails}` : "",
-  s.keyword_hits_total ? `• ${s.keyword_hits_total} ${t.keywords}` : ""
-].filter(Boolean).join("<br>")
-}
+        {
+          label: t.s_summary,
+          value: "",
+          sub: detectedSummary || (currentLang === "ar" ? "لا توجد مؤشرات مستخرجة" : "No extracted indicators")
+        }
       ];
 
       cards.forEach(c=>{
         const div = document.createElement("div");
         div.className = "stat";
         div.innerHTML = `
-          <div class="label">${c.label}</div>
-          <div class="value">${c.value}</div>
+          <div class="label">${escapeHtml(c.label)}</div>
+          <div class="value">${escapeHtml(c.value)}</div>
           <div class="sub">${c.sub || ""}</div>
         `;
         wrap.appendChild(div);
@@ -498,8 +587,7 @@ sub: [
         most_recent: t.a_most_recent,
         peak_hour: t.a_peak_hour,
         peak_day: t.a_peak_day,
-        duration: t.a_duration,
-        ratio: t.a_ratio
+        duration: t.a_duration
       };
 
       if (!Array.isArray(list) || !list.length) {
@@ -507,18 +595,20 @@ sub: [
         return;
       }
 
-      list.forEach(r=>{
-        const div = document.createElement("div");
-        div.className = "item";
-        const val = (currentLang === "ar") ? (r.value_ar || r.value || "-") : (r.value_en || r.value || "-");
-        div.innerHTML = `
-          <div class="row">
-            <span class="mono">${labelMap[r.id] || r.label || r.id || "-"}</span>
-            <span class="pill ok">${val}</span>
-          </div>
-        `;
-        wrap.appendChild(div);
-      });
+      list
+        .filter(r => r.id !== "ratio")
+        .forEach(r=>{
+          const div = document.createElement("div");
+          div.className = "item";
+          const val = (currentLang === "ar") ? (r.value_ar || r.value || "-") : (r.value_en || r.value || "-");
+          div.innerHTML = `
+            <div class="row">
+              <span class="mono">${escapeHtml(labelMap[r.id] || r.label || r.id || "-")}</span>
+              <span class="pill ok">${escapeHtml(val)}</span>
+            </div>
+          `;
+          wrap.appendChild(div);
+        });
     }
 
     function renderFlags(flags){
@@ -532,22 +622,20 @@ sub: [
       }
 
       flags.forEach(f=>{
-        const div = document.createElement("div");
-        div.className = "item";
-
         const level = f.level || "ok";
         const pillClass = level === "danger" ? "danger" : (level === "warn" ? "warn" : "ok");
         const pillText = level === "danger" ? t.p_important : (level === "warn" ? t.p_warn : t.p_ok);
-
         const title = (currentLang === "ar") ? (f.title_ar || f.title || "-") : (f.title_en || f.title || "-");
         const desc  = (currentLang === "ar") ? (f.desc_ar || f.description || f.desc || "-") : (f.desc_en || f.description || f.desc || "-");
 
+        const div = document.createElement("div");
+        div.className = `item ${level === "danger" ? "danger-border" : level === "warn" ? "warn-border" : "ok-border"}`;
         div.innerHTML = `
           <div class="row">
-            <span class="mono"><b>${title}</b></span>
-            <span class="pill ${pillClass}">${pillText}</span>
+            <span class="mono"><b>${escapeHtml(title)}</b></span>
+            <span class="pill ${pillClass}">${escapeHtml(pillText)}</span>
           </div>
-          <div class="muted">${desc}</div>
+          <div class="muted">${escapeHtml(desc)}</div>
         `;
         wrap.appendChild(div);
       });
@@ -564,15 +652,13 @@ sub: [
       }
 
       const level = flow.level || "warn";
-      const pillClass = level === "danger" ? "danger" : "warn";
       const text = currentLang === "ar" ? (flow.text_ar || "-") : (flow.text_en || "-");
 
       const div = document.createElement("div");
-      div.className = "item";
+      div.className = `item ${level === "danger" ? "danger-border" : "warn-border"}`;
       div.innerHTML = `
         <div class="row">
-          <span class="mono"><b>${text}</b></span>
-          <span class="pill ${pillClass}">${level.toUpperCase()}</span>
+          <span class="mono"><b>${escapeHtml(text)}</b></span>
         </div>
       `;
       wrap.appendChild(div);
@@ -591,15 +677,30 @@ sub: [
       const preview = currentLang === "ar"
         ? (msg.text_preview_ar || msg.text_preview || "-")
         : (msg.text_preview_en || msg.text_preview || "-");
-      const dt = msg.datetime || "-";
+
+      const rawReasons = currentLang === "ar"
+        ? (msg.reasons_ar || [])
+        : (msg.reasons_en || []);
+
+      const reasons = rawReasons
+        .filter(r => !String(r).toLowerCase().includes("external url") && !String(r).includes("رابط خارجي"))
+        .slice(0, 2);
 
       const div = document.createElement("div");
-      div.className = "item";
+      div.className = "item danger-border";
       div.innerHTML = `
         <div class="row">
-          <span class="pill warn">${dt}</span>
+          <button type="button" class="pill ok" onclick="goToMessage('${escapeHtml(msg.message_id || "")}')">
+            <i class="fa-solid fa-location-arrow"></i>
+            ${currentLang === "ar" ? "اذهب للرسالة" : "Go to Message"}
+          </button>
         </div>
-        <div class="muted">${preview}</div>
+        <div class="muted">${escapeHtml(preview)}</div>
+        ${reasons.length ? `
+          <div class="reason-list">
+            ${reasons.map(r => `<span class="reason">${escapeHtml(r)}</span>`).join("")}
+          </div>
+        ` : ""}
       `;
       wrap.appendChild(div);
     }
@@ -621,7 +722,7 @@ sub: [
       items.forEach(text=>{
         const div = document.createElement("div");
         div.className = "item";
-        div.innerHTML = `<div class="muted">• ${text}</div>`;
+        div.innerHTML = `<div class="muted">• ${escapeHtml(text)}</div>`;
         wrap.appendChild(div);
       });
     }
@@ -641,51 +742,24 @@ sub: [
       urls.forEach(u=>{
         const value = u.url || u.value || u.link || "-";
         const count = u.count || u.hits || 1;
-
+        const isSpoof = Boolean(u.is_spoofing);
         const div = document.createElement("div");
-        div.className = "item";
+        div.className = `item ${isSpoof ? "danger-border" : ""}`;
         div.innerHTML = `
-          <div class="row">
-            <span class="mono">${value}</span>
-            <span class="pill">${count} ${t.times}</span>
+          <div class="mono">${escapeHtml(value)}</div>
+          <div class="row" style="justify-content:flex-end;">
+            <span class="pill ${isSpoof ? "danger" : ""}">
+              ${isSpoof ? escapeHtml(t.possibleSpoof) : `${count} ${escapeHtml(t.times)}`}
+            </span>
           </div>
-        `;
-        wrap.appendChild(div);
-      });
-    }
-
-    function renderNumbers(nums){
-      const t = UI[currentLang];
-      const wrap = document.getElementById("numbersList");
-      wrap.innerHTML = "";
-
-      setPill(document.getElementById("numbersCountPill"), `${(nums || []).length} ${t.numbers}`);
-
-      if(!Array.isArray(nums) || !nums.length){
-        wrap.innerHTML = `<div class="muted">${currentLang==="ar" ? "لا توجد أرقام." : "No numbers found."}</div>`;
-        return;
-      }
-
-      nums.forEach(n=>{
-        const value = n.value || n.number || "-";
-        const count = n.count || n.hits || 1;
-
-        const typeLabel = n.type === "otp"
-          ? (currentLang === "ar" ? "OTP محتمل" : "Possible OTP")
-          : (currentLang === "ar" ? "رقم هاتف" : "Phone Number");
-
-        const ctx = (currentLang==="ar")
-          ? (n.context_ar || n.context || "-")
-          : (n.context_en || n.context || "-");
-
-        const div = document.createElement("div");
-        div.className = "item";
-        div.innerHTML = `
-          <div class="row">
-            <span class="mono">${value}</span>
-            <span class="pill">${count} ${t.times}</span>
-          </div>
-          <div class="muted">${typeLabel} — ${ctx}</div>
+          ${isSpoof ? `
+            <div class="url-spoof-note">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+              ${escapeHtml(u.spoofing_suspicious_domain || u.domain || "")}
+              ${escapeHtml(t.resembles)}
+              <b>${escapeHtml(u.spoofing_resembles || "")}</b>
+            </div>
+          ` : ""}
         `;
         wrap.appendChild(div);
       });
@@ -710,8 +784,8 @@ sub: [
 
         div.innerHTML = `
           <div class="row">
-            <span class="mono"><b>${keyword}</b></span>
-            <span class="pill">${hits} ${t.hits}</span>
+            <span class="mono"><b>${escapeHtml(keyword)}</b></span>
+            <span class="pill">${hits} ${escapeHtml(t.hits)}</span>
           </div>
         `;
         wrap.appendChild(div);
@@ -726,7 +800,6 @@ sub: [
       renderTopMessage(raw.top_suspicious_message);
       renderRecommendations(raw.recommendations);
       renderUrls(raw.urls);
-      renderNumbers(raw.numbers);
       renderKeywords(raw.keywords);
     }
 
@@ -735,24 +808,30 @@ sub: [
       const html = document.documentElement;
 
       html.lang = currentLang;
-      html.dir  = (currentLang === "ar") ? "rtl" : "ltr";
-      document.title = t.title;
+html.dir = "rtl";
+document.body.dir = "rtl";      document.title = t.title;
 
       const topSubtitle = document.getElementById("top-subtitle");
       const langText = document.getElementById("langText");
       if (topSubtitle) topSubtitle.textContent = t.topSubtitle;
       if (langText) langText.textContent = (currentLang === "en") ? "AR" : "EN";
 
-      document.getElementById("txt-summary-title").textContent = t.summaryTitle;
-      document.getElementById("txt-activity-title").textContent = t.activityTitle;
-      document.getElementById("txt-flags-title").textContent = t.flagsTitle;
-      document.getElementById("txt-flow-title").textContent = t.flowTitle;
-      document.getElementById("txt-topmsg-title").textContent = t.topMsgTitle;
-      document.getElementById("txt-rec-title").textContent = t.recTitle;
-      document.getElementById("txt-urls-title").textContent = t.urlsTitle;
-      document.getElementById("txt-numbers-title").textContent = t.numbersTitle;
-      document.getElementById("txt-keywords-title").textContent = t.keywordsTitle;
-      document.getElementById("txt-keywords-note").textContent = t.keywordsNote;
+      const ids = {
+        "txt-summary-title": t.summaryTitle,
+        "txt-activity-title": t.activityTitle,
+        "txt-flags-title": t.flagsTitle,
+        "txt-flow-title": t.flowTitle,
+        "txt-topmsg-title": t.topMsgTitle,
+        "txt-rec-title": t.recTitle,
+        "txt-urls-title": t.urlsTitle,
+        "txt-keywords-title": t.keywordsTitle,
+        "txt-keywords-note": t.keywordsNote
+      };
+
+      Object.entries(ids).forEach(([id, text]) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text;
+      });
     }
 
     function normalizeAnalysisResponse(data){
@@ -764,6 +843,7 @@ sub: [
       raw.summary.first_contact = summary.first_contact ?? summary.first_message_time ?? data.first_contact ?? "-";
       raw.summary.last_contact = summary.last_contact ?? summary.last_message_time ?? data.last_contact ?? "-";
       raw.summary.urls_count = summary.urls_count ?? ((data.urls || data.extracted_urls || []).length) ?? 0;
+      raw.summary.spoofing_urls_count = summary.spoofing_urls_count ?? 0;
       raw.summary.numbers_count = summary.numbers_count ?? ((data.numbers || data.extracted_numbers || []).length) ?? 0;
       raw.summary.emails_count = summary.emails_count ?? ((data.emails || data.extracted_emails || []).length) ?? 0;
       raw.summary.keyword_hits_total = summary.keyword_hits_total ?? summary.keywords_total ?? 0;
@@ -776,6 +856,20 @@ sub: [
       raw.urls = data.urls || data.extracted_urls || [];
       raw.numbers = data.numbers || data.extracted_numbers || [];
       raw.keywords = data.keywords || data.keyword_hits || [];
+
+      if (!raw.summary.spoofing_urls_count) {
+        raw.summary.spoofing_urls_count = raw.urls.filter(u => u.is_spoofing).length;
+      }
+    }
+
+    function fillAllAsNoData(message){
+      [
+        "summaryStats", "activityList", "flagsList", "flowList", "topMessageList",
+        "recommendationsList", "urlsList", "keywordsList"
+      ].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = `<div class="muted">${message}</div>`;
+      });
     }
 
     async function loadRealAnalysis() {
@@ -784,15 +878,7 @@ sub: [
       if (analysisLoading || analysisLoaded) return;
 
       if (!caseId) {
-        document.getElementById("summaryStats").innerHTML = `<div class="muted">${t.noData}</div>`;
-        document.getElementById("activityList").innerHTML = `<div class="muted">${t.noData}</div>`;
-        document.getElementById("flagsList").innerHTML = `<div class="muted">${t.noData}</div>`;
-        document.getElementById("flowList").innerHTML = `<div class="muted">${t.noData}</div>`;
-        document.getElementById("topMessageList").innerHTML = `<div class="muted">${t.noData}</div>`;
-        document.getElementById("recommendationsList").innerHTML = `<div class="muted">${t.noData}</div>`;
-        document.getElementById("urlsList").innerHTML = `<div class="muted">${t.noData}</div>`;
-        document.getElementById("numbersList").innerHTML = `<div class="muted">${t.noData}</div>`;
-        document.getElementById("keywordsList").innerHTML = `<div class="muted">${t.noData}</div>`;
+        fillAllAsNoData(t.noData);
         return;
       }
 
@@ -804,15 +890,7 @@ sub: [
         const data = await res.json();
 
         if (!res.ok || !data.ok) {
-          document.getElementById("summaryStats").innerHTML = `<div class="muted">${t.failed}: ${data.error || ""}</div>`;
-          document.getElementById("activityList").innerHTML = `<div class="muted">${t.failed}</div>`;
-          document.getElementById("flagsList").innerHTML = `<div class="muted">${t.failed}</div>`;
-          document.getElementById("flowList").innerHTML = `<div class="muted">${t.failed}</div>`;
-          document.getElementById("topMessageList").innerHTML = `<div class="muted">${t.failed}</div>`;
-          document.getElementById("recommendationsList").innerHTML = `<div class="muted">${t.failed}</div>`;
-          document.getElementById("urlsList").innerHTML = `<div class="muted">${t.failed}</div>`;
-          document.getElementById("numbersList").innerHTML = `<div class="muted">${t.failed}</div>`;
-          document.getElementById("keywordsList").innerHTML = `<div class="muted">${t.failed}</div>`;
+          fillAllAsNoData(`${t.failed}: ${data.error || ""}`);
           return;
         }
 
@@ -822,15 +900,7 @@ sub: [
 
       } catch (e) {
         console.error("Analysis load failed:", e);
-        document.getElementById("summaryStats").innerHTML = `<div class="muted">${t.failed}</div>`;
-        document.getElementById("activityList").innerHTML = `<div class="muted">${t.failed}</div>`;
-        document.getElementById("flagsList").innerHTML = `<div class="muted">${t.failed}</div>`;
-        document.getElementById("flowList").innerHTML = `<div class="muted">${t.failed}</div>`;
-        document.getElementById("topMessageList").innerHTML = `<div class="muted">${t.failed}</div>`;
-        document.getElementById("recommendationsList").innerHTML = `<div class="muted">${t.failed}</div>`;
-        document.getElementById("urlsList").innerHTML = `<div class="muted">${t.failed}</div>`;
-        document.getElementById("numbersList").innerHTML = `<div class="muted">${t.failed}</div>`;
-        document.getElementById("keywordsList").innerHTML = `<div class="muted">${t.failed}</div>`;
+        fillAllAsNoData(t.failed);
       } finally {
         analysisLoading = false;
       }
@@ -850,13 +920,50 @@ sub: [
           scripts.forEach(s => s.remove());
 
           holder.innerHTML = "";
-          holder.append(...temp.childNodes);
+         holder.append(...temp.childNodes);
+
+/* 🔥 هذا تحطينه هنا مباشرة */
+const btnAccount = document.getElementById("btnAccount");
+const menu = document.getElementById("accountMenu");
+
+if (btnAccount && menu) {
+  btnAccount.onclick = (e) => {
+    e.stopPropagation();
+    menu.classList.toggle("open");
+  };
+
+  document.onclick = () => {
+    if (menu.classList.contains("open")) {
+      menu.classList.remove("open");
+    }
+  };
+
+  menu.onclick = (e) => e.stopPropagation();
+}
+const menuAdmin = document.getElementById("menuAdmin");
+const menuAdminBadge = document.getElementById("menuAdminBadge");
+const avatarBadge = document.getElementById("avatarBadge");
+
+const role = (localStorage.getItem("userRole") || "").toLowerCase();
+
+if (menuAdmin) {
+  if (role === "admin") {
+    menuAdmin.classList.add("show");
+    menuAdmin.style.display = "flex";
+  } else {
+    menuAdmin.classList.remove("show");
+    menuAdmin.style.display = "none";
+  }
+}
+
+if (menuAdminBadge) menuAdminBadge.textContent = "0";
+if (avatarBadge) avatarBadge.classList.remove("show");
         }
 
         const backBtn = document.getElementById("btnBack");
         if (backBtn) {
           backBtn.style.display = "inline-flex";
-          backBtn.onclick = () => window.location.href = "chat.html";
+          backBtn.onclick = () => window.location.href = caseId ? `chat.html?case_id=${encodeURIComponent(caseId)}` : "chat.html";
         }
 
         const btnLang = document.getElementById("btnLang");
@@ -872,6 +979,14 @@ sub: [
       } catch (e) {
         console.error("Header load failed:", e);
       }
+    }
+
+
+    function goToMessage(messageId) {
+      if (!messageId) return;
+
+      localStorage.setItem("FOCUS_MESSAGE_ID", String(messageId));
+      window.location.href = `chat.html?case_id=${encodeURIComponent(caseId)}&focus=${encodeURIComponent(messageId)}`;
     }
 
     window.addEventListener("DOMContentLoaded", async () => {
