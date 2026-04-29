@@ -47,4 +47,3 @@ def get_case_analysis(case_id):
             "ok": False,
             "error": str(e)
         }), 500
-
