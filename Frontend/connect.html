@@ -1,6 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
-<head>
+<html lang="en" dir="rtl"><head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Whisper-WA | Connect</title>
@@ -84,6 +83,10 @@
       margin-bottom: 18px;
       line-height:1.6;
     }
+    .card h1,
+.subtitle {
+  text-align: center;
+}
     .tabs{
       display:flex;
       gap:0;
@@ -326,7 +329,7 @@
         <div class="tab-content" id="usbTab">
           <div class="panel">
             <form id="usbForm" action="http://127.0.0.1:5000/api/device/connect-and-open" method="GET">
-              <div class="note">
+<div class="note" style="direction:ltr; text-align:left;">
                 1) Connect device using USB cable.<br>
                 2) Enable <b>USB Debugging</b>.<br>
                 3) Press <b>Connect</b>.
@@ -576,8 +579,11 @@ const res = await fetch(
   function applyLang(lang){
     const isAr = lang === "ar";
 
-    document.documentElement.lang = isAr ? "ar" : "en";
-    document.documentElement.dir = isAr ? "rtl" : "ltr";
+document.documentElement.lang = isAr ? "ar" : "en";
+
+/* نخلي الهيدر ثابت مثل الشات */
+document.documentElement.dir = "rtl";
+document.body.dir = "rtl";
 
     document.title = getText("title");
 
