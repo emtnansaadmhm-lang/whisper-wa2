@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="en" dir="rtl">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -31,6 +31,7 @@
         linear-gradient(rgba(31, 95, 59, 0.10) 1px, transparent 1px),
         linear-gradient(90deg, rgba(31, 95, 59, 0.10) 1px, transparent 1px);
       background-size: 40px 40px;
+      direction: rtl;
     }
     .animated-bg-logo{
       position: fixed; top:50%; left:50%;
@@ -136,7 +137,7 @@
     .request-info .meta{ color: var(--text-muted); font-size: 0.85rem; }
     .request-reason{
       background: rgba(0,0,0,0.2);
-      border-left: 3px solid var(--primary-mid);
+      border-right: 3px solid var(--primary-mid);
       padding: 10px 12px; border-radius: 8px;
       margin: 10px 0; font-size: 0.9rem;
       line-height: 1.5; color: rgba(255,255,255,0.9);
@@ -175,7 +176,7 @@
     .user-table thead th{
       background: rgba(20, 40, 30, 0.95);
       color: var(--primary-light);
-      font-size: 0.9rem; text-align: left;
+      font-size: 0.9rem; text-align: inherit;
       padding: 12px 16px;
       border-bottom: 1px solid rgba(255,255,255,0.08);
     }
@@ -271,16 +272,16 @@
       </div>
       <div class="user-table-wrap">
         <table class="user-table">
-         <thead>
-  <tr>
-    <th>Name</th>
-    <th>Email</th>
-    <th>Job Title</th>
-    <th>Department</th>
-    <th>Status</th>
-    <th>Actions</th>
-  </tr>
-</thead>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Job Title</th>
+              <th>Department</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
           <tbody id="activeUsersTable"></tbody>
         </table>
       </div>
@@ -308,9 +309,11 @@ let stats = {
 };
 
 function authHeaders(){
-  return {
-    "Authorization": `Bearer ${token}`
-  };
+  return { "Authorization": `Bearer ${token}` };
+}
+
+function isArabic(){
+  return (localStorage.getItem("lang") || "en") === "ar";
 }
 
 function showAlert(type, message){
@@ -322,56 +325,31 @@ function showAlert(type, message){
 
 async function loadStats(){
   try{
-    const res = await fetch(`${API_URL}/admin/stats`, {
-      method: "GET",
-      headers: authHeaders()
-    });
+    const res = await fetch(`${API_URL}/admin/stats`, { method: "GET", headers: authHeaders() });
     const data = await res.json();
-    console.log("stats:", data);
-
-    if(data.success && data.stats){
-      stats = data.stats;
-    }
+    if(data.success && data.stats) stats = data.stats;
   } catch(e){
     console.error("Failed to load stats:", e);
   }
 }
 
-async function loadPendingRequests() {
-  try {
-    const res = await fetch(`${API_URL}/admin/requests?status=pending`, {
-      method: "GET",
-      headers: authHeaders()
-    });
+async function loadPendingRequests(){
+  try{
+    const res = await fetch(`${API_URL}/admin/requests?status=pending`, { method: "GET", headers: authHeaders() });
     const data = await res.json();
-    console.log("pending requests:", data);
-
-    if(data.success && Array.isArray(data.requests)){
-      pendingRequests = data.requests;
-    } else {
-      pendingRequests = [];
-    }
-  } catch(e) {
+    pendingRequests = (data.success && Array.isArray(data.requests)) ? data.requests : [];
+  } catch(e){
     console.error("Failed to load pending requests:", e);
     pendingRequests = [];
   }
 }
 
-async function loadAllUsers() {
-  try {
-    const res = await fetch(`${API_URL}/admin/users`, {
-      method: "GET",
-      headers: authHeaders()
-    });
+async function loadAllUsers(){
+  try{
+    const res = await fetch(`${API_URL}/admin/users`, { method: "GET", headers: authHeaders() });
     const data = await res.json();
-    console.log("users:", data);
-
-    if(data.success && Array.isArray(data.users)){
-      allUsers = data.users;
-    } else {
-      allUsers = [];
-    }
-  } catch(e) {
+    allUsers = (data.success && Array.isArray(data.users)) ? data.users : [];
+  } catch(e){
     console.error("Failed to load users:", e);
     allUsers = [];
   }
@@ -382,17 +360,20 @@ function updateStats(){
   document.getElementById("statActive").textContent = stats.active_users ?? allUsers.length;
   document.getElementById("statRejected").textContent = stats.rejected_requests ?? 0;
   document.getElementById("statTotal").textContent = stats.total_requests ?? ((stats.pending_requests || 0) + (stats.rejected_requests || 0));
-  document.getElementById("badgePending").textContent = pendingRequests.length;
+
+  const badge = document.getElementById("badgePending");
+  if(badge) badge.textContent = pendingRequests.length;
 }
 
 function renderPendingRequests(){
   const container = document.getElementById("pendingRequestsContainer");
+  const ar = isArabic();
 
   if(pendingRequests.length === 0){
     container.innerHTML = `
       <div class="empty-state">
         <i class="fa-solid fa-inbox"></i>
-        <p>No pending requests at the moment.</p>
+        <p>${ar ? "لا توجد طلبات معلقة حالياً." : "No pending requests at the moment."}</p>
       </div>`;
     return;
   }
@@ -407,17 +388,17 @@ function renderPendingRequests(){
             <i class="fa-solid fa-briefcase"></i> ${req.job_title || "---"}
             ${req.department ? `• ${req.department}` : ""}
             <br>
-            <i class="fa-solid fa-clock"></i> Submitted: ${req.submitted_at ? new Date(req.submitted_at).toLocaleString() : "---"}
+            <i class="fa-solid fa-clock"></i> ${ar ? "تاريخ الإرسال:" : "Submitted:"} ${req.submitted_at ? new Date(req.submitted_at).toLocaleString() : "---"}
           </div>
         </div>
       </div>
-      <div class="request-reason"><strong>Reason:</strong><br>${req.reason || "---"}</div>
+      <div class="request-reason"><strong>${ar ? "السبب:" : "Reason:"}</strong><br>${req.reason || "---"}</div>
       <div class="request-actions">
         <button class="btn-small btn-approve" onclick="approveRequest(${req.id})">
-          <i class="fa-solid fa-check"></i> Approve
+          <i class="fa-solid fa-check"></i> ${ar ? "قبول" : "Approve"}
         </button>
         <button class="btn-small btn-reject" onclick="rejectRequest(${req.id})">
-          <i class="fa-solid fa-xmark"></i> Reject
+          <i class="fa-solid fa-xmark"></i> ${ar ? "رفض" : "Reject"}
         </button>
       </div>
     </div>
@@ -427,13 +408,14 @@ function renderPendingRequests(){
 function renderActiveUsers(){
   const tbody = document.getElementById("activeUsersTable");
   const activeUsers = allUsers.filter(u => u.role !== "admin" && u.is_active !== false);
+  const ar = isArabic();
 
   if(activeUsers.length === 0){
     tbody.innerHTML = `
       <tr>
-        <td colspan="5" style="text-align:center; padding:40px; color:var(--text-muted);">
+        <td colspan="6" style="text-align:center; padding:40px; color:var(--text-muted);">
           <i class="fa-solid fa-users-slash" style="font-size:2rem; opacity:0.3; display:block; margin-bottom:10px;"></i>
-          No active users yet.
+          ${ar ? "لا يوجد مستخدمون نشطون حالياً." : "No active users yet."}
         </td>
       </tr>`;
     return;
@@ -445,96 +427,83 @@ function renderActiveUsers(){
       <td>${user.email || "---"}</td>
       <td>${user.job_title || "---"}</td>
       <td>${user.department || "---"}</td>
-      <td><span style="color: var(--accent-glow);">Active</span></td>
-       <td>
-      <button class="btn-small btn-reject" onclick="deactivateUser(${user.id})" style="font-size:0.75rem; padding:6px 12px;">
-        <i class="fa-solid fa-ban"></i> Deactivate
-      </button>
-    </td>
+      <td><span style="color: var(--accent-glow);">${ar ? "نشط" : "Active"}</span></td>
+      <td>
+        <button class="btn-small btn-reject" onclick="deactivateUser(${user.id})" style="font-size:0.75rem; padding:6px 12px;">
+          <i class="fa-solid fa-ban"></i> ${ar ? "تعطيل" : "Deactivate"}
+        </button>
+      </td>
     </tr>
   `).join("");
 }
 
 async function approveRequest(id){
-  try {
-    const res = await fetch(`${API_URL}/admin/requests/${id}/approve`, {
-      method: "POST",
-      headers: authHeaders()
-    });
-
+  try{
+    const res = await fetch(`${API_URL}/admin/requests/${id}/approve`, { method: "POST", headers: authHeaders() });
     const data = await res.json();
-    console.log("approve:", data);
 
     if(!data.success){
       showAlert("danger", data.message || "Failed to approve request");
       return;
     }
 
-    showAlert("success", "✓ Request approved! User created.");
+    showAlert("success", isArabic() ? "تم قبول الطلب وإنشاء المستخدم." : "✓ Request approved! User created.");
     await refresh();
-  } catch(e) {
-    console.error("Approve error:", e);
+  } catch(e){
     showAlert("danger", `Failed: ${e.message}`);
   }
 }
 
 async function rejectRequest(id){
-  try {
-    const res = await fetch(`${API_URL}/admin/requests/${id}/reject`, {
-      method: "POST",
-      headers: authHeaders()
-    });
-
+  try{
+    const res = await fetch(`${API_URL}/admin/requests/${id}/reject`, { method: "POST", headers: authHeaders() });
     const data = await res.json();
-    console.log("reject:", data);
 
     if(!data.success){
       showAlert("danger", data.message || "Failed to reject request");
       return;
     }
 
-    showAlert("info", "Request rejected.");
+    showAlert("info", isArabic() ? "تم رفض الطلب." : "Request rejected.");
     await refresh();
-  } catch(e) {
-    console.error("Reject error:", e);
+  } catch(e){
     showAlert("danger", `Failed: ${e.message}`);
   }
 }
+
 async function deactivateUser(userId){
-  if(!confirm("Are you sure you want to deactivate this user?")){
+  const ar = isArabic();
+  if(!confirm(ar ? "هل أنت متأكد من تعطيل هذا المستخدم؟" : "Are you sure you want to deactivate this user?")){
     return;
   }
 
-  try {
-    const res = await fetch(`${API_URL}/admin/users/${userId}/deactivate`, {
-      method: "POST",
-      headers: authHeaders()
-    });
-
+  try{
+    const res = await fetch(`${API_URL}/admin/users/${userId}/deactivate`, { method: "POST", headers: authHeaders() });
     const data = await res.json();
-    console.log("deactivate:", data);
 
     if(!data.success){
       showAlert("danger", data.message || "Failed to deactivate user");
       return;
     }
 
-    showAlert("success", "✓ User deactivated successfully.");
+    showAlert("success", ar ? "تم تعطيل المستخدم بنجاح." : "✓ User deactivated successfully.");
     await refresh();
-  } catch(e) {
-    console.error("Deactivate error:", e);
+  } catch(e){
     showAlert("danger", `Failed: ${e.message}`);
   }
 }
+
 async function refresh(){
   await Promise.all([
     loadStats(),
     loadPendingRequests(),
     loadAllUsers()
   ]);
+
   updateStats();
   renderPendingRequests();
   renderActiveUsers();
+  applyAdminLang();
 }
 
 function setupAdminHeader(){
@@ -544,22 +513,25 @@ function setupAdminHeader(){
   const menuAdmin = document.getElementById("menuAdmin");
   const backBtn = document.getElementById("btnBack");
 
-  if (!btnAccount || !menu) return;
+  if(menuAdmin){
+    menuAdmin.classList.add("show");
+    menuAdmin.style.display = "flex";
+  }
 
-  if(menuAdmin) menuAdmin.classList.add("show");
+  if(btnAccount && menu){
+    btnAccount.onclick = (e) => {
+      e.stopPropagation();
+      menu.classList.toggle("open");
+    };
 
-  btnAccount.onclick = (e) => {
-    e.stopPropagation();
-    menu.classList.toggle("open");
-  };
+    document.onclick = () => {
+      if(menu.classList.contains("open")) menu.classList.remove("open");
+    };
 
-  document.onclick = () => {
-    if(menu.classList.contains("open")) menu.classList.remove("open");
-  };
+    menu.onclick = (e) => e.stopPropagation();
+  }
 
-  menu.onclick = (e) => e.stopPropagation();
-
-  if (logoutBtn){
+  if(logoutBtn){
     logoutBtn.onclick = () => {
       localStorage.removeItem("authToken");
       localStorage.removeItem("userRole");
@@ -570,12 +542,81 @@ function setupAdminHeader(){
 
   if(backBtn){
     backBtn.style.display = "inline-flex";
-    backBtn.onclick = () => window.location.href = "connect.html";
+    backBtn.onclick = () => {
+      if(document.referrer && document.referrer !== window.location.href){
+        window.history.back();
+      } else {
+        window.location.href = "chat.html";
+      }
+    };
   }
 }
 
+function applyAdminLang(){
+  const lang = localStorage.getItem("lang") || "en";
+  const isAr = lang === "ar";
+
+  document.documentElement.lang = lang;
+
+  /* نخلي الصفحة RTL دائمًا عشان الهيدر يبقى مثل الشات */
+  document.documentElement.dir = "rtl";
+  document.body.dir = "rtl";
+
+  /* المحتوى الداخلي يتغير حسب اللغة، لكن الهيدر ما ينقلب */
+  document.querySelectorAll(".page-header, .stats-grid, .panel").forEach(el => {
+    el.dir = isAr ? "rtl" : "ltr";
+  });
+
+  document.title = isAr ? "Whisper-WA | لوحة تحكم المسؤول" : "Whisper-WA | Admin Dashboard";
+
+  const langText = document.getElementById("langText");
+  const topSubtitle = document.getElementById("top-subtitle");
+
+  if(langText) langText.textContent = isAr ? "EN" : "AR";
+  if(topSubtitle) topSubtitle.textContent = isAr ? "منصة التحليل الجنائي الرقمي" : "Digital Forensics Platform";
+
+  const h1 = document.querySelector(".header-left h1");
+  const p = document.querySelector(".header-left p");
+
+  if(h1) h1.innerHTML = isAr
+    ? `<i class="fa-solid fa-shield-halved"></i> لوحة تحكم المسؤول`
+    : `<i class="fa-solid fa-shield-halved"></i> Admin Dashboard`;
+
+  if(p) p.textContent = isAr
+    ? "إدارة طلبات الوصول وحسابات المستخدمين النشطة"
+    : "Manage user access requests and active accounts";
+
+  const labels = document.querySelectorAll(".stat-card .label");
+  if(labels[0]) labels[0].textContent = isAr ? "الطلبات المعلقة" : "Pending Requests";
+  if(labels[1]) labels[1].textContent = isAr ? "المستخدمون النشطون" : "Active Users";
+  if(labels[2]) labels[2].textContent = isAr ? "المرفوضة" : "Rejected";
+  if(labels[3]) labels[3].textContent = isAr ? "الإجمالي" : "Total";
+
+  const panelTitles = document.querySelectorAll(".panel-header h3");
+  if(panelTitles[0]) panelTitles[0].innerHTML = isAr
+    ? `<i class="fa-solid fa-hourglass-half"></i> الطلبات المعلقة <span class="badge" id="badgePending">${pendingRequests.length}</span>`
+    : `<i class="fa-solid fa-hourglass-half"></i> Pending Requests <span class="badge" id="badgePending">${pendingRequests.length}</span>`;
+
+  if(panelTitles[1]) panelTitles[1].innerHTML = isAr
+    ? `<i class="fa-solid fa-users"></i> المستخدمون النشطون`
+    : `<i class="fa-solid fa-users"></i> Active Users`;
+
+  const ths = document.querySelectorAll(".user-table thead th");
+  const arHeads = ["الاسم", "البريد الإلكتروني", "المسمى الوظيفي", "القسم", "الحالة", "الإجراءات"];
+  const enHeads = ["Name", "Email", "Job Title", "Department", "Status", "Actions"];
+  ths.forEach((th, i) => th.textContent = isAr ? arHeads[i] : enHeads[i]);
+
+  const menuAdminText = document.getElementById("menuAdminText");
+  const menuSettingsText = document.getElementById("menuSettingsText");
+  const menuLogoutText = document.getElementById("menuLogoutText");
+
+  if(menuAdminText) menuAdminText.textContent = isAr ? "لوحة تحكم المسؤول" : "Admin Dashboard";
+  if(menuSettingsText) menuSettingsText.textContent = isAr ? "الإعدادات" : "Settings";
+  if(menuLogoutText) menuLogoutText.textContent = isAr ? "تسجيل الخروج" : "Logout";
+}
+
 window.addEventListener("DOMContentLoaded", async () => {
-  try {
+  try{
     const res = await fetch("header.html");
     const headerHtml = await res.text();
     const placeholder = document.getElementById("header-placeholder");
@@ -583,13 +624,31 @@ window.addEventListener("DOMContentLoaded", async () => {
 
     setTimeout(async () => {
       setupAdminHeader();
+
+      const btnLang = document.getElementById("btnLang");
+      if(btnLang){
+        btnLang.onclick = () => {
+          const current = localStorage.getItem("lang") || "en";
+          const next = current === "ar" ? "en" : "ar";
+          localStorage.setItem("lang", next);
+
+          applyAdminLang();
+          renderPendingRequests();
+          renderActiveUsers();
+          applyAdminLang();
+        };
+      }
+
       await refresh();
+      applyAdminLang();
     }, 300);
-  } catch (e) {
+
+  } catch(e){
     console.error("Header load error:", e);
     await refresh();
+    applyAdminLang();
   }
 });
 </script>
 </body>
-</html> 
+</html>
