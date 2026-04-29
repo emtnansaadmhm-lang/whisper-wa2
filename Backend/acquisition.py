@@ -3,11 +3,13 @@ import subprocess
 import hashlib
 from database import save_evidence_hash
 
+
 def _adb():
     local_adb = os.path.join(os.path.dirname(__file__), "adb.exe")
     if os.path.exists(local_adb):
         return local_adb
     return "adb"
+
 
 def calculate_sha256(file_path):
     sha256_hash = hashlib.sha256()
@@ -16,12 +18,28 @@ def calculate_sha256(file_path):
             sha256_hash.update(byte_block)
     return sha256_hash.hexdigest()
 
+
 def _run(cmd):
     return subprocess.run(
         cmd,
         capture_output=True,
         text=True
     )
+
+
+def calculate_device_sha256(base_cmd, android_path):
+    commands = [
+        ["shell", "sha256sum", android_path],
+        ["shell", "su", "-c", f"sha256sum {android_path}"]
+    ]
+
+    for cmd in commands:
+        res = _run(base_cmd + cmd)
+        if res.returncode == 0 and res.stdout.strip():
+            return res.stdout.strip().split()[0]
+
+    return None
+
 
 def pull_whatsapp_evidence(case_id="Case_001"):
     save_path = os.path.join("Cases", case_id, "Evidence")
@@ -34,9 +52,6 @@ def pull_whatsapp_evidence(case_id="Case_001"):
     if serial:
         base_cmd += ["-s", serial]
 
-    # =========================
-    # dynamic DB path
-    # =========================
     possible_paths = [
         "/sdcard/WhatsApp/Databases/",
         "/sdcard/Android/media/com.whatsapp/WhatsApp/Databases/",
@@ -50,20 +65,14 @@ def pull_whatsapp_evidence(case_id="Case_001"):
         if res.returncode == 0 and res.stdout:
             files = [f.strip() for f in res.stdout.splitlines() if f.strip()]
 
-            preferred = next(
-                (f for f in files if f == "msgstore.db.crypt14"),
-                None
-            )
+            preferred = next((f for f in files if f == "msgstore.db.crypt14"), None)
 
             if preferred:
                 android_db = path + preferred
                 print(f"[INFO] Using main DB path: {android_db}")
                 break
 
-            fallback = next(
-                (f for f in files if "msgstore" in f and "crypt" in f),
-                None
-            )
+            fallback = next((f for f in files if "msgstore" in f and "crypt" in f), None)
 
             if fallback:
                 android_db = path + fallback
@@ -84,26 +93,39 @@ def pull_whatsapp_evidence(case_id="Case_001"):
         if not android_db:
             raise Exception("WhatsApp database not found")
 
-        res = _run(base_cmd + ["pull", android_db, local_db_path])
+        db_device_hash = calculate_device_sha256(base_cmd, android_db)
 
+        res = _run(base_cmd + ["pull", android_db, local_db_path])
         if res.returncode != 0:
             raise Exception(res.stderr or res.stdout)
 
         db_hash = calculate_sha256(local_db_path)
         db_size = os.path.getsize(local_db_path)
 
+        db_integrity = (
+            "Verified"
+            if db_device_hash and db_device_hash == db_hash
+            else "Not Verified"
+        )
+
         save_evidence_hash(
             case_id,
             "msgstore.db.crypt14",
             db_hash,
             f"{db_size / 1024:.2f} KB",
-            local_db_path
+            local_db_path,
+            device_hash=db_device_hash,
+            local_hash=db_hash,
+            integrity_status=db_integrity
         )
 
         results.append({
             "file": "msgstore.db.crypt14",
             "status": "Success",
             "hash": db_hash,
+            "device_hash": db_device_hash,
+            "local_hash": db_hash,
+            "integrity": db_integrity,
             "size": f"{db_size / 1024:.2f} KB",
             "path": local_db_path
         })
@@ -121,8 +143,9 @@ def pull_whatsapp_evidence(case_id="Case_001"):
     # =========================
     try:
         temp_key_on_sdcard = "/sdcard/key"
-
         is_wifi = bool(serial and ":" in serial)
+
+        key_device_hash = None
 
         if not is_wifi:
             android_key = "/data/data/com.whatsapp/files/key"
@@ -130,6 +153,8 @@ def pull_whatsapp_evidence(case_id="Case_001"):
             res_cp = _run(base_cmd + ["shell", "su", "-c", f"cp {android_key} {temp_key_on_sdcard}"])
             if res_cp.returncode != 0:
                 raise Exception(res_cp.stderr or res_cp.stdout)
+
+            key_device_hash = calculate_device_sha256(base_cmd, temp_key_on_sdcard)
 
             res_pull = _run(base_cmd + ["pull", temp_key_on_sdcard, local_key_path])
             if res_pull.returncode != 0:
@@ -159,6 +184,8 @@ def pull_whatsapp_evidence(case_id="Case_001"):
 
                 _run(base_cmd + ["shell", f'su -c "chmod 666 {temp_key_on_sdcard}"'])
 
+                key_device_hash = calculate_device_sha256(base_cmd, temp_key_on_sdcard)
+
                 res_pull = _run(base_cmd + ["pull", temp_key_on_sdcard, local_key_path])
                 if res_pull.returncode != 0:
                     last_error = res_pull.stderr or res_pull.stdout or f"Failed to pull key from {android_key}"
@@ -179,18 +206,30 @@ def pull_whatsapp_evidence(case_id="Case_001"):
         key_hash = calculate_sha256(local_key_path)
         key_size = os.path.getsize(local_key_path)
 
+        key_integrity = (
+            "Verified"
+            if key_device_hash and key_device_hash == key_hash
+            else "Not Verified"
+        )
+
         save_evidence_hash(
             case_id,
             "key",
             key_hash,
             f"{key_size / 1024:.2f} KB",
-            local_key_path
+            local_key_path,
+            device_hash=key_device_hash,
+            local_hash=key_hash,
+            integrity_status=key_integrity
         )
 
         results.append({
             "file": "key",
             "status": "Success",
             "hash": key_hash,
+            "device_hash": key_device_hash,
+            "local_hash": key_hash,
+            "integrity": key_integrity,
             "size": f"{key_size / 1024:.2f} KB",
             "path": local_key_path
         })
