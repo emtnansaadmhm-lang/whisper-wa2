@@ -6,12 +6,25 @@ from urllib.parse import quote
 
 from acquisition import pull_whatsapp_evidence
 from database import create_next_case, create_case_record, assign_case_owner
+
 try:
     from decrypt import decrypt_whatsapp_db
 except Exception:
     decrypt_whatsapp_db = None
 
+
 bp_connected = Blueprint("bp_connected", __name__)
+
+# =========================
+# Global workflow status
+# Used by connect.html to know when extraction/decryption finishes
+# =========================
+CONNECT_STATUS = {
+    "state": "idle",   # idle / running / done / error
+    "case_id": "",
+    "message": "",
+    "step": ""
+}
 
 
 def now_ts():
@@ -33,10 +46,13 @@ def add_log(logs, level, msg, step=None, detail=None):
         "level": level,
         "msg": msg
     }
+
     if step:
         item["step"] = step
+
     if detail is not None:
         item["detail"] = detail
+
     logs.append(item)
 
     print(f"[{item['ts']}] [{level}] [{step or '-'}] {msg}")
@@ -76,6 +92,7 @@ def _adb(adb_path=None):
 
 def adb_version(adb_path=None):
     adb = _adb(adb_path)
+
     try:
         code, out, err = _run([adb, "version"], timeout=15)
         return {
@@ -84,6 +101,7 @@ def adb_version(adb_path=None):
             "stdout": out,
             "stderr": err
         }
+
     except FileNotFoundError:
         return {
             "ok": False,
@@ -91,6 +109,7 @@ def adb_version(adb_path=None):
             "stdout": "",
             "stderr": "adb executable not found"
         }
+
     except Exception as e:
         return {
             "ok": False,
@@ -105,6 +124,7 @@ def adb_devices(adb_path=None):
 
     try:
         code, out, err = _run([adb, "devices"], timeout=20)
+
     except FileNotFoundError:
         return {
             "ok": False,
@@ -115,6 +135,7 @@ def adb_devices(adb_path=None):
             "unauthorized": [],
             "offline": []
         }
+
     except Exception as e:
         return {
             "ok": False,
@@ -143,10 +164,12 @@ def adb_devices(adb_path=None):
 
     for line in out.splitlines():
         line = line.strip()
+
         if not line or line.startswith("List of devices"):
             continue
 
         parts = line.split()
+
         if len(parts) < 2:
             continue
 
@@ -175,6 +198,7 @@ def adb_connect_wifi(ip_port, adb_path=None):
 
     try:
         code, out, err = _run([adb, "connect", ip_port], timeout=25)
+
     except FileNotFoundError:
         return {
             "ok": False,
@@ -182,6 +206,7 @@ def adb_connect_wifi(ip_port, adb_path=None):
             "stdout": "",
             "stderr": "adb executable not found"
         }
+
     except Exception as e:
         return {
             "ok": False,
@@ -210,6 +235,7 @@ def adb_root_check(serial=None, adb_path=None):
 
     try:
         code, out, err = _run(base + ["shell", "su", "-c", "id"], timeout=20)
+
         if code == 0 and "uid=0" in out:
             return {
                 "ok": True,
@@ -220,6 +246,7 @@ def adb_root_check(serial=None, adb_path=None):
             }
 
         code2, out2, err2 = _run(base + ["shell", "id"], timeout=20)
+
         if code2 == 0 and "uid=0" in out2:
             return {
                 "ok": True,
@@ -259,6 +286,7 @@ def choose_target_serial(method, ip_port, dev_after):
             }
 
         normalized_ip = ip_port.split(":")[0] if ip_port else ""
+
         for s in devices:
             if s == normalized_ip or s.startswith(normalized_ip + ":"):
                 return {
@@ -332,6 +360,7 @@ def perform_connect(method, ip_port="", adb_path=None, user_id=None):
 
     add_log(logs, "INFO", "Checking ADB availability...", "adb_check")
     adb_ver = adb_version(adb_path=adb_path)
+
     if not adb_ver.get("ok"):
         add_log(logs, "ERROR", "ADB is not available.", "adb_check", adb_ver)
         return {
@@ -401,8 +430,16 @@ def perform_connect(method, ip_port="", adb_path=None, user_id=None):
         }, 400
 
     chosen = choose_target_serial(method, ip_port, dev_after)
+
     if not chosen.get("ok"):
-        add_log(logs, "ERROR", chosen.get("error", "Could not determine target serial"), "serial_select", chosen.get("detail"))
+        add_log(
+            logs,
+            "ERROR",
+            chosen.get("error", "Could not determine target serial"),
+            "serial_select",
+            chosen.get("detail")
+        )
+
         return {
             "ok": False,
             "step": "serial_select",
@@ -462,6 +499,7 @@ def perform_workflow(case_id, serial="", wadecrypt_path="wadecrypt", timeout_sec
     add_log(logs, "INFO", f"Starting workflow for case: {case_id}", "workflow_start")
 
     old_android_serial = os.environ.get("ANDROID_SERIAL")
+
     if serial:
         os.environ["ANDROID_SERIAL"] = serial
         add_log(logs, "INFO", f"Using device serial: {serial}", "serial_bind")
@@ -568,8 +606,15 @@ def api_device_connect():
     method = (body.get("method") or "").strip().lower()
     ip_port = (body.get("ip_port") or "").strip()
     adb_path = body.get("adb_path") or None
+    user_id = body.get("user_id") or None
 
-    result, status = perform_connect(method=method, ip_port=ip_port, adb_path=adb_path)
+    result, status = perform_connect(
+        method=method,
+        ip_port=ip_port,
+        adb_path=adb_path,
+        user_id=user_id
+    )
+
     return jsonify(result), status
 
 
@@ -593,6 +638,7 @@ def api_workflow_run():
         wadecrypt_path=wadecrypt_path,
         timeout_sec=timeout_sec
     )
+
     return jsonify(result), status
 
 
@@ -610,8 +656,15 @@ def api_device_connect_and_run():
     adb_path = body.get("adb_path") or None
     wadecrypt_path = body.get("wadecrypt_path") or "wadecrypt"
     timeout_sec = int(body.get("timeout_sec") or 180)
+    user_id = body.get("user_id") or None
 
-    conn_result, conn_status = perform_connect(method=method, ip_port=ip_port, adb_path=adb_path)
+    conn_result, conn_status = perform_connect(
+        method=method,
+        ip_port=ip_port,
+        adb_path=adb_path,
+        user_id=user_id
+    )
+
     if conn_status != 200:
         return jsonify(conn_result), conn_status
 
@@ -641,7 +694,101 @@ def api_device_connect_and_run():
         "rooted": True,
         "acquisition": wf_result.get("acquisition"),
         "decrypt": wf_result.get("decrypt"),
-        "logs": merged_logs
+        "logs": merged_logs,
+        "message": "Workflow completed successfully"
+    }), 200
+
+
+@bp_connected.route("/api/device/status", methods=["GET"])
+def api_device_status():
+    return jsonify(CONNECT_STATUS), 200
+
+
+# هذا endpoint جديد يخلي صفحة connect تنتظر النتيجة وتعرض إشعار بدون انتقال تلقائي
+@bp_connected.route("/api/device/connect-and-notify", methods=["POST"])
+def api_device_connect_and_notify():
+    global CONNECT_STATUS
+
+    body = request.get_json(silent=True) or {}
+
+    CONNECT_STATUS.update({
+        "state": "running",
+        "case_id": "",
+        "message": "Workflow is running",
+        "step": "start"
+    })
+
+    print("\n" + "=" * 80)
+    print("[API] /api/device/connect-and-notify called")
+    print(f"[BODY] {body}")
+    print("=" * 80)
+
+    method = (body.get("method") or "").strip().lower()
+    ip_port = (body.get("ip_port") or "").strip()
+    adb_path = body.get("adb_path") or None
+    wadecrypt_path = body.get("wadecrypt_path") or "wadecrypt"
+    timeout_sec = int(body.get("timeout_sec") or 180)
+    user_id = body.get("user_id") or None
+
+    conn_result, conn_status = perform_connect(
+        method=method,
+        ip_port=ip_port,
+        adb_path=adb_path,
+        user_id=user_id
+    )
+
+    if conn_status != 200:
+        CONNECT_STATUS.update({
+            "state": "error",
+            "case_id": conn_result.get("case_id", ""),
+            "message": conn_result.get("error", "Connection failed"),
+            "step": conn_result.get("step", "connect")
+        })
+        return jsonify(conn_result), conn_status
+
+    case_id = conn_result.get("case_id", "")
+    serial = conn_result.get("serial", "")
+
+    wf_result, wf_status = perform_workflow(
+        case_id=case_id,
+        serial=serial,
+        wadecrypt_path=wadecrypt_path,
+        timeout_sec=timeout_sec
+    )
+
+    merged_logs = (conn_result.get("logs") or []) + (wf_result.get("logs") or [])
+
+    if wf_status != 200:
+        wf_result["case_id"] = case_id
+        wf_result["serial"] = serial
+        wf_result["logs"] = merged_logs
+
+        CONNECT_STATUS.update({
+            "state": "error",
+            "case_id": case_id,
+            "message": wf_result.get("error", "Workflow failed"),
+            "step": wf_result.get("step", "workflow")
+        })
+
+        return jsonify(wf_result), wf_status
+
+    CONNECT_STATUS.update({
+        "state": "done",
+        "case_id": case_id,
+        "message": "Workflow completed successfully",
+        "step": "done"
+    })
+
+    return jsonify({
+        "ok": True,
+        "step": "done",
+        "case_id": case_id,
+        "serial": serial,
+        "rooted": True,
+        "acquisition": wf_result.get("acquisition"),
+        "decrypt": wf_result.get("decrypt"),
+        "logs": merged_logs,
+        "message": "DONE"
     }), 200
 
 

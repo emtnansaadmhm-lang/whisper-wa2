@@ -96,9 +96,8 @@ class CaseInvestigator(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     case_name = db.Column(db.String(150), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
-    is_owner = db.Column(db.Boolean, default=False)
     added_at = db.Column(db.DateTime, default=datetime.utcnow)
-
+    added_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
 
 class EvidenceHash(db.Model):
     __tablename__ = "evidence_hashes"

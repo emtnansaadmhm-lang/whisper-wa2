@@ -166,5 +166,77 @@
     "fileName": "forensic_report_Case_047_1777359112803.pdf",
     "filePath": "C:\\Users\\Emtnan\\Desktop\\whisper-wa-main\\Backend\\saved_reports\\forensic_report_Case_047_1777359112803.pdf",
     "fileType": "pdf"
+  },
+  {
+    "id": 1777481554547,
+    "investigator": "System Administrator",
+    "date": "2026-04-29",
+    "time": "19:52",
+    "caseNumber": "Case_007",
+    "deviceInfo": "---",
+    "status": "completed",
+    "fileName": "forensic_report_Case_007_1777481554547.pdf",
+    "filePath": "C:\\Users\\Emtnan\\Desktop\\whisper-wa-main\\Backend\\saved_reports\\forensic_report_Case_007_1777481554547.pdf",
+    "fileType": "pdf"
+  },
+  {
+    "id": 1777481801209,
+    "investigator": "System Administrator",
+    "date": "2026-04-29",
+    "time": "19:56",
+    "caseNumber": "Case_007",
+    "deviceInfo": "---",
+    "status": "completed",
+    "fileName": "forensic_report_Case_007_1777481801209.pdf",
+    "filePath": "C:\\Users\\Emtnan\\Desktop\\whisper-wa-main\\Backend\\saved_reports\\forensic_report_Case_007_1777481801209.pdf",
+    "fileType": "pdf"
+  },
+  {
+    "id": 1777481961981,
+    "investigator": "System Administrator",
+    "date": "2026-04-29",
+    "time": "19:59",
+    "caseNumber": "Case_007",
+    "deviceInfo": "---",
+    "status": "completed",
+    "fileName": "forensic_report_Case_007_1777481961981.pdf",
+    "filePath": "C:\\Users\\Emtnan\\Desktop\\whisper-wa-main\\Backend\\saved_reports\\forensic_report_Case_007_1777481961981.pdf",
+    "fileType": "pdf"
+  },
+  {
+    "id": 1777786629625,
+    "investigator": "System Administrator",
+    "date": "2026-05-03",
+    "time": "08:37",
+    "caseNumber": "Case_267",
+    "deviceInfo": "---",
+    "status": "completed",
+    "fileName": "forensic_report_Case_267_1777786629625.pdf",
+    "filePath": "C:\\Users\\Emtnan\\Desktop\\whisper-wa-main\\Backend\\saved_reports\\forensic_report_Case_267_1777786629625.pdf",
+    "fileType": "pdf"
+  },
+  {
+    "id": 1777953680203,
+    "investigator": "Imtinan",
+    "date": "2026-05-05",
+    "time": "07:01",
+    "caseNumber": "Case_341",
+    "deviceInfo": "---",
+    "status": "completed",
+    "fileName": "forensic_report_Case_341_1777953680203.pdf",
+    "filePath": "C:\\Users\\Emtnan\\Desktop\\whisper-wa-main\\Backend\\saved_reports\\forensic_report_Case_341_1777953680203.pdf",
+    "fileType": "pdf"
+  },
+  {
+    "id": 1778151218309,
+    "investigator": "Imtinan",
+    "date": "2026-05-07",
+    "time": "13:53",
+    "caseNumber": "Case_355",
+    "deviceInfo": "---",
+    "status": "completed",
+    "fileName": "forensic_report_Case_355_1778151218309.pdf",
+    "filePath": "C:\\Users\\Emtnan\\Desktop\\whisper-wa-main\\Backend\\saved_reports\\forensic_report_Case_355_1778151218309.pdf",
+    "fileType": "pdf"
   }
 ]

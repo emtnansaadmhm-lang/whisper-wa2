@@ -300,7 +300,7 @@ def assign_case_owner(case_name, user_id):
         db.session.add(CaseInvestigator(
             case_name=case_name,
             user_id=user_id,
-            is_owner=True
+            
         ))
         db.session.commit()
 
@@ -315,68 +315,78 @@ def add_investigator_to_case(case_name, user_id):
         db.session.add(CaseInvestigator(
             case_name=case_name,
             user_id=user_id,
-            is_owner=False
+            
         ))
         db.session.commit()
 
 
 def get_cases_for_user(user_id, role):
+    # إذا كان آدمن، يرى كل القضايا كمالك
     if role == "admin":
-        return get_all_cases()
+        all_cases = get_all_cases()
+        return [{**c.__dict__, "is_owner": True, "added_by_name": "System"} for c in all_cases]
 
-    if not user_id:
-        return []
+    if not user_id: return []
 
+    # جلب الروابط بين المحقق والقضايا
     links = CaseInvestigator.query.filter_by(user_id=user_id).all()
-    case_names = [l.case_name for l in links]
+    results = []
 
-    if not case_names:
-        return []
-
-    return Case.query.filter(
-        Case.case_name.in_(case_names)
-    ).order_by(Case.created_at.desc()).all()
+    for link in links:
+        case = Case.query.filter_by(case_name=link.case_name).first()
+        if case:
+            # جلب اسم الشخص الذي أضافه
+            inv_adder = User.query.get(link.added_by) if link.added_by else None
+            
+            case_data = {
+                "id": case.id,
+                "case_name": case.case_name,
+                "created_at": case.created_at,
+                "is_owner": (link.added_by is None), # نعتبره صاحب القضية إذا لم يضفه أحد
+                "added_by_name": inv_adder.name if inv_adder else "System"
+            }
+            results.append(case_data)
+    
+    return results
 
 
 def get_case_investigators(case_name):
     return CaseInvestigator.query.filter_by(case_name=case_name).all()
 
-def add_user_to_case(case_name, user_id):
-    if not case_name or not user_id:
-        return False
-
-    existing = CaseInvestigator.query.filter_by(
-        case_name=case_name,
-        user_id=user_id
-    ).first()
-
-    if existing:
-        return True
+def add_user_to_case(case_name, user_id, current_user_id=None):
+    if not case_name or not user_id: return False
+    
+    existing = CaseInvestigator.query.filter_by(case_name=case_name, user_id=user_id).first()
+    if existing: return True
 
     db.session.add(CaseInvestigator(
         case_name=case_name,
         user_id=user_id,
-        is_owner=False
+        added_by=current_user_id # 👈 تخزين من قام بالإضافة
     ))
     db.session.commit()
     return True
 
 def get_investigators_details(case_name):
-    """
-    جلب تفاصيل المحققين (الاسم، الآي دي) المرتبطين بقضية معينة
-    """
-    links = CaseInvestigator.query.filter_by(case_name=case_name).all()
+    links = CaseInvestigator.query.filter_by(case_name=case_name).order_by(
+        CaseInvestigator.added_at.asc(),
+        CaseInvestigator.id.asc()
+    ).all()
+
     users_info = []
-    
+
+    creator_link_id = links[0].id if links else None
+
     for link in links:
-        user = get_user_by_id(link.user_id) 
+        user = get_user_by_id(link.user_id)
         if user:
             users_info.append({
                 "id": user.id,
                 "name": user.name,
                 "email": user.email,
-                "is_owner": link.is_owner
+                "is_creator": link.id == creator_link_id
             })
+
     return users_info
 
 def remove_user_from_case(case_name, user_id):
@@ -395,8 +405,6 @@ def remove_user_from_case(case_name, user_id):
         return False
 
 
-    if link.is_owner:
-        return False
 
     db.session.delete(link)
     db.session.commit()
