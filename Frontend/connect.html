@@ -1,6 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
-<head>
+<html lang="en" dir="rtl"><head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Whisper-WA | Connect</title>
@@ -83,6 +82,10 @@
       color: var(--text-muted);
       margin-bottom: 18px;
       line-height:1.6;
+    }
+    .card h1,
+    .subtitle {
+      text-align: center;
     }
     .tabs{
       display:flex;
@@ -180,6 +183,25 @@
       border: 1px solid rgba(255,255,255,0.10);
     }
 
+    .btn.ready{
+      background: rgba(95,191,122,0.28);
+      color: #d8ffe4;
+      border: 1px solid rgba(95,191,122,0.55);
+      animation: glowPulse 1.8s ease-in-out infinite;
+      box-shadow: 0 0 12px rgba(95,191,122,0.5);
+    }
+
+    @keyframes glowPulse{
+      0%{ box-shadow: 0 0 8px rgba(95,191,122,0.3); }
+      50%{ box-shadow: 0 0 18px rgba(95,191,122,0.8); }
+      100%{ box-shadow: 0 0 8px rgba(95,191,122,0.3); }
+    }
+
+    .btn:disabled{
+      opacity:0.65;
+      cursor:not-allowed;
+    }
+
     .alert{
       margin-top: 16px;
       padding: 12px 14px;
@@ -188,6 +210,8 @@
       font-weight:900;
       white-space: pre-wrap;
       line-height: 1.65;
+      text-align: center;
+      direction: rtl;
     }
     .alert.hidden{ display:none; }
     .alert.danger{
@@ -195,7 +219,16 @@
       border-color: rgba(255,107,107,0.30);
       color: #ffd1d1;
     }
-    .hidden-input{ display:none; }
+    .alert.success{
+      background: rgba(95,191,122,0.16);
+      border-color: rgba(95,191,122,0.45);
+      color: #d8ffe4;
+    }
+    .alert.info{
+      background: rgba(143,217,168,0.10);
+      border-color: rgba(143,217,168,0.28);
+      color: #c2dec9;
+    }
 
     .modal-overlay{
       position: fixed;
@@ -281,6 +314,37 @@
       padding: 20px 0;
       line-height: 1.8;
     }
+
+    /* ===== Toast Notifications ===== */
+    #toast-container{
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      right: auto;
+      z-index: 10000;
+      display: flex;
+      flex-direction: column-reverse;
+      gap: 10px;
+      pointer-events: none;
+    }
+
+.forensic-toast{
+  pointer-events: auto;
+  width: 320px;
+  background: rgba(16, 28, 22, 0.97);
+  border-left: 3px solid #ffc107;
+  padding: 12px 14px;
+  border-radius: 14px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.45);
+  animation: slideInLeft 0.35s ease forwards;
+  border: 1px solid rgba(255,255,255,0.06);
+  backdrop-filter: blur(10px);
+}
+
+    @keyframes slideInLeft{
+      from{ transform: translateX(-100%); opacity: 0; }
+      to{ transform: translateX(0); opacity: 1; }
+    }
   </style>
 </head>
 
@@ -304,19 +368,14 @@
 
         <div class="tab-content active" id="wifiTab">
           <div class="panel">
-            <form id="wifiForm" action="http://127.0.0.1:5000/api/device/connect-and-open" method="GET">
+            <form id="wifiForm">
               <label for="ipInput">Device IP:PORT</label>
               <input id="ipInput" name="ip_port" type="text" placeholder="e.g. 192.168.56.101:5555" />
-              <input class="hidden-input" type="hidden" name="method" value="wifi" />
-              <input class="hidden-input" type="hidden" name="frontend_base" id="wifi_frontend_base" />
-              <input class="hidden-input" type="hidden" name="wadecrypt_path" value="wadecrypt.exe" />
-              <input class="hidden-input" type="hidden" name="timeout_sec" value="180" />
 
               <div class="note">Enter IP:PORT then press Connect.</div>
 
               <div class="actions">
-                <button class="btn btn-primary" id="btnWifiConnect" type="submit">Connect</button>
-                <button class="btn btn-ghost" id="btnWifiExtract" type="button">View Extract Chat</button>
+                <button class="btn btn-primary" id="btnWifiConnect" type="button">Connect</button>
                 <button class="btn btn-ghost" id="btnWifiOldCases" type="button">Open Old Cases</button>
               </div>
             </form>
@@ -325,21 +384,15 @@
 
         <div class="tab-content" id="usbTab">
           <div class="panel">
-            <form id="usbForm" action="http://127.0.0.1:5000/api/device/connect-and-open" method="GET">
-              <div class="note">
+            <form id="usbForm">
+              <div class="note" style="direction:ltr; text-align:left;">
                 1) Connect device using USB cable.<br>
                 2) Enable <b>USB Debugging</b>.<br>
                 3) Press <b>Connect</b>.
               </div>
 
-              <input class="hidden-input" type="hidden" name="method" value="usb" />
-              <input class="hidden-input" type="hidden" name="frontend_base" id="usb_frontend_base" />
-              <input class="hidden-input" type="hidden" name="wadecrypt_path" value="wadecrypt.exe" />
-              <input class="hidden-input" type="hidden" name="timeout_sec" value="180" />
-
               <div class="actions">
-                <button class="btn btn-primary" id="btnUsbConnect" type="submit">Connect</button>
-                <button class="btn btn-ghost" id="btnUsbExtract" type="button">View Extract Chat</button>
+                <button class="btn btn-primary" id="btnUsbConnect" type="button">Connect</button>
                 <button class="btn btn-ghost" id="btnUsbOldCases" type="button">Open Old Cases</button>
               </div>
             </form>
@@ -371,22 +424,89 @@
   const alertBox = document.getElementById("alertBox");
   const ipInput = document.getElementById("ipInput");
 
-  const btnWifiExtract = document.getElementById("btnWifiExtract");
-  const btnUsbExtract = document.getElementById("btnUsbExtract");
+  const btnWifiConnect = document.getElementById("btnWifiConnect");
+  const btnUsbConnect = document.getElementById("btnUsbConnect");
+
   const btnWifiOldCases = document.getElementById("btnWifiOldCases");
   const btnUsbOldCases = document.getElementById("btnUsbOldCases");
 
   const tabBtns = document.querySelectorAll(".tab-btn");
   const tabs = document.querySelectorAll(".tab-content");
 
-  const wifiForm = document.getElementById("wifiForm");
-  const usbForm = document.getElementById("usbForm");
-  const wifiFrontendBase = document.getElementById("wifi_frontend_base");
-  const usbFrontendBase = document.getElementById("usb_frontend_base");
-
   const casesModal = document.getElementById("casesModal");
   const closeCasesModal = document.getElementById("closeCasesModal");
   const caseList = document.getElementById("caseList");
+
+  let completedCaseId = "";
+  let activeWorkflowMethod = localStorage.getItem("workflow_method") || "";
+  window.isWorking = false;
+  window.statusWatcherTimer = null;
+
+  function getCurrentLang(){
+    return localStorage.getItem("lang") || "en";
+  }
+
+  function getText(key){
+    const lang = getCurrentLang();
+    const texts = {
+      en: {
+        title: "Whisper-WA | Connect",
+        heading: "Connect Device",
+        subtitle: "Select a connection method, then click Connect",
+        wifiTab: "Wi-Fi (IP:PORT)",
+        usbTab: "USB",
+        wifiLabel: "Device IP:PORT",
+        wifiPlaceholder: "e.g. 192.168.56.101:5555",
+        wifiNote: "Enter IP:PORT then press Connect.",
+        usbNote: `1) Connect device using USB cable.<br>
+2) Enable <b>USB Debugging</b>.<br>
+3) Press <b>Connect</b>.`,
+        connect: "Connect",
+        open: "Open",
+        working: "Working...",
+        oldCases: "Open Old Cases",
+        modalTitle: "Old Cases",
+        noOldCases: "No old cases found yet.",
+        noExtractedChats: "No extracted chats found yet.",
+        enterIp: "Please enter IP:PORT",
+        noDate: "No date",
+        errorPrefix: "Error:",
+        waitingMessage: "Processing is running. Please wait until the extraction is completed",
+        stillWorkingMessage: "Processing is still running. You will be notified when it is completed",
+        successMessage: "Extraction completed successfully\nCase is ready: {case_id}\nPress Open to view the extracted chat",
+        failMessage: "The operation failed: {message}"
+      },
+      ar: {
+        title: "Whisper-WA | الاتصال",
+        heading: "ربط الجهاز",
+        subtitle: "اختر طريقة الاتصال ثم اضغط اتصال",
+        wifiTab: "واي فاي (IP:PORT)",
+        usbTab: "USB",
+        wifiLabel: "IP الجهاز:PORT",
+        wifiPlaceholder: "مثال: 192.168.56.101:5555",
+        wifiNote: "أدخل IP:PORT ثم اضغط اتصال.",
+        usbNote: `1) صِل الجهاز باستخدام سلك USB.<br>
+2) فعّل <b>USB Debugging</b>.<br>
+3) اضغط <b>اتصال</b>.`,
+        connect: "اتصال",
+        open: "فتح",
+        working: "جاري العمل...",
+        oldCases: "فتح القضايا السابقة",
+        modalTitle: "القضايا السابقة",
+        noOldCases: "لا توجد قضايا سابقة حتى الآن.",
+        noExtractedChats: "لا توجد محادثات مستخرجة حتى الآن.",
+        enterIp: "الرجاء إدخال IP:PORT",
+        noDate: "لا يوجد تاريخ",
+        errorPrefix: "خطأ:",
+        waitingMessage: "جاري تنفيذ العمليات. الرجاء الانتظار حتى يكتمل الاستخراج.",
+        stillWorkingMessage: "العملية لا تزال تعمل. سيتم التنبيه عند الانتهاء.",
+        successMessage: "تمت العمليات بنجاح.\nالقضية جاهزة: {case_id}.\nاضغط فتح لعرض المحادثات المستخرجة.",
+        failMessage: "فشلت العملية: {message}"
+      }
+    };
+
+    return texts[lang][key] || texts.en[key] || "";
+  }
 
   function showAlert(type, text){
     alertBox.classList.remove("hidden");
@@ -395,11 +515,84 @@
   }
 
   function hideAlert(){
+    if (window.isWorking) return;
     alertBox.classList.add("hidden");
     alertBox.textContent = "";
   }
 
+  function getConnectButtonByMethod(method){
+    return method === "usb" ? btnUsbConnect : btnWifiConnect;
+  }
+
+  function activateTabByMethod(method, keepAlert = true){
+    const tabId = method === "usb" ? "usbTab" : "wifiTab";
+
+    tabBtns.forEach(b => b.classList.remove("active"));
+    tabs.forEach(t => t.classList.remove("active"));
+
+    const btn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+    const tab = document.getElementById(tabId);
+
+    if (btn) btn.classList.add("active");
+    if (tab) tab.classList.add("active");
+
+    localStorage.setItem("active_connect_tab", method);
+
+    if (!keepAlert) hideAlert();
+  }
+
+  function resetConnectButtons(){
+    [btnWifiConnect, btnUsbConnect].forEach(btn => {
+      btn.disabled = false;
+      btn.classList.remove("ready");
+      btn.textContent = getText("connect");
+    });
+  }
+
+  function setWorkingState(method){
+    activeWorkflowMethod = method;
+    localStorage.setItem("workflow_method", method);
+    localStorage.setItem("active_connect_tab", method);
+
+    activateTabByMethod(method, true);
+
+    const activeBtn = getConnectButtonByMethod(method);
+    const otherBtn = method === "usb" ? btnWifiConnect : btnUsbConnect;
+
+    activeBtn.disabled = true;
+    activeBtn.classList.remove("ready");
+    activeBtn.textContent = getText("working");
+
+    otherBtn.disabled = true;
+  }
+
+  function setOpenState(caseId){
+    completedCaseId = caseId;
+
+    localStorage.setItem("case_id", caseId);
+    localStorage.setItem("CURRENT_CASE_ID", caseId);
+
+    const method = activeWorkflowMethod || localStorage.getItem("workflow_method") || "wifi";
+    activateTabByMethod(method, true);
+
+    const activeBtn = getConnectButtonByMethod(method);
+    const otherBtn = method === "usb" ? btnWifiConnect : btnUsbConnect;
+
+    activeBtn.disabled = false;
+    activeBtn.classList.add("ready");
+    activeBtn.textContent = getText("open");
+
+    otherBtn.disabled = false;
+    otherBtn.classList.remove("ready");
+    otherBtn.textContent = getText("connect");
+  }
+
   function openChat(caseId){
+    if (!caseId) {
+      showAlert("danger", getText("noExtractedChats"));
+      return;
+    }
+
     localStorage.setItem("case_id", caseId);
     localStorage.setItem("CURRENT_CASE_ID", caseId);
 
@@ -408,13 +601,23 @@
   }
 
   async function fetchCases(){
-const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
-const userId = currentUser.id || "";
-const role = currentUser.role || "user";
+    let currentUser = {};
+    try {
+      currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
+    } catch(e) {
+      currentUser = {};
+    }
 
-const res = await fetch(
-  `${API_BASE}/api/cases?user_id=${encodeURIComponent(userId)}&role=${encodeURIComponent(role)}`
-);    const data = await res.json();
+    const userId = currentUser.id || "";
+    const role = currentUser.role || "user";
+
+    let url = `${API_BASE}/api/cases`;
+    if (userId) {
+      url += `?user_id=${encodeURIComponent(userId)}&role=${encodeURIComponent(role)}`;
+    }
+
+    const res = await fetch(url);
+    const data = await res.json();
 
     if(!res.ok || !data.ok){
       throw new Error("Failed to load cases.");
@@ -426,6 +629,11 @@ const res = await fetch(
   async function goToLastExtractChat(){
     hideAlert();
 
+    if (completedCaseId) {
+      openChat(completedCaseId);
+      return;
+    }
+
     try{
       const cases = await fetchCases();
 
@@ -435,14 +643,129 @@ const res = await fetch(
       }
 
       const latestCase = cases.sort((a, b) =>
-        new Date(b.created_at) - new Date(a.created_at)
+        new Date(b.created_at || 0) - new Date(a.created_at || 0)
       )[0];
 
-      const latestCaseId = latestCase.case_id;
-      openChat(latestCaseId);
+      openChat(latestCase.case_id);
     }catch(e){
       showAlert("danger", `${getText("errorPrefix")} ${e.message}`);
     }
+  }
+
+  function startStatusWatcher(){
+    if (window.statusWatcherTimer) {
+      clearInterval(window.statusWatcherTimer);
+      window.statusWatcherTimer = null;
+    }
+
+    window.statusWatcherTimer = setInterval(async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/device/status?ts=${Date.now()}`, {
+          cache: "no-store"
+        });
+
+        const s = await res.json();
+        console.log("DEVICE STATUS:", s);
+
+        if (s.state === "done" && s.case_id) {
+          clearInterval(window.statusWatcherTimer);
+          window.statusWatcherTimer = null;
+
+          localStorage.removeItem("workflow_watch");
+
+          window.isWorking = false;
+          setOpenState(s.case_id);
+
+          showAlert(
+            "success",
+            getText("successMessage").replace("{case_id}", s.case_id)
+          );
+          return;
+        }
+
+        if (s.state === "error") {
+          clearInterval(window.statusWatcherTimer);
+          window.statusWatcherTimer = null;
+
+          localStorage.removeItem("workflow_watch");
+
+          const message = s.message || "Unknown error";
+          showAlert(
+            "danger",
+            getText("failMessage").replace("{message}", message)
+          );
+
+          window.isWorking = false;
+          resetConnectButtons();
+          return;
+        }
+
+        if (localStorage.getItem("workflow_watch") === "1") {
+          showAlert("info", getText("stillWorkingMessage"));
+        }
+
+      } catch(e) {
+        console.warn("Status watcher waiting...", e);
+      }
+    }, 2000);
+  }
+
+  async function runConnectWorkflow(method){
+    if (window.isWorking) return;
+
+    if (completedCaseId) {
+      openChat(completedCaseId);
+      return;
+    }
+
+    window.isWorking = true;
+    hideAlert();
+
+    let ip = ipInput.value.trim();
+
+    if (method === "wifi") {
+      if(!ip){
+        window.isWorking = false;
+        showAlert("danger", getText("enterIp"));
+        return;
+      }
+
+      if(!ip.includes(":")){
+        ip = `${ip}:5555`;
+        ipInput.value = ip;
+      }
+    }
+
+    let user = {};
+    try {
+      user = JSON.parse(localStorage.getItem("currentUser") || "{}");
+    } catch(e) {
+      user = {};
+    }
+
+    const payload = {
+      method: method,
+      ip_port: method === "wifi" ? ip : "",
+      wadecrypt_path: "wadecrypt.exe",
+      timeout_sec: 180,
+      user_id: user.id || ""
+    };
+
+    localStorage.setItem("workflow_watch", "1");
+    localStorage.setItem("workflow_method", method);
+
+    setWorkingState(method);
+    showAlert("info", getText("waitingMessage"));
+
+    startStatusWatcher();
+
+    fetch(`${API_BASE}/api/device/connect-and-notify`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(payload)
+    }).catch(e => {
+      console.warn("Ignored fetch error because status watcher is active:", e);
+    });
   }
 
   function showCasesModal(){
@@ -493,91 +816,12 @@ const res = await fetch(
     }
   }
 
-  btnWifiExtract.addEventListener("click", goToLastExtractChat);
-  btnUsbExtract.addEventListener("click", goToLastExtractChat);
-
-  btnWifiOldCases.addEventListener("click", openOldCasesModal);
-  btnUsbOldCases.addEventListener("click", openOldCasesModal);
-
-  closeCasesModal.addEventListener("click", hideCasesModal);
-
-  casesModal.addEventListener("click", (e) => {
-    if(e.target === casesModal){
-      hideCasesModal();
-    }
-  });
-
-  tabBtns.forEach(btn => {
-    btn.addEventListener("click", () => {
-      tabBtns.forEach(b => b.classList.remove("active"));
-      tabs.forEach(t => t.classList.remove("active"));
-      btn.classList.add("active");
-      document.getElementById(btn.dataset.tab).classList.add("active");
-      hideAlert();
-    });
-  });
-
-  function getCurrentLang(){
-    return localStorage.getItem("lang") || "en";
-  }
-
-  function getText(key){
-    const lang = getCurrentLang();
-    const texts = {
-      en: {
-        title: "Whisper-WA | Connect",
-        heading: "Connect Device",
-        subtitle: "Select a connection method, then click Connect",
-        wifiTab: "Wi-Fi (IP:PORT)",
-        usbTab: "USB",
-        wifiLabel: "Device IP:PORT",
-        wifiPlaceholder: "e.g. 192.168.56.101:5555",
-        wifiNote: "Enter IP:PORT then press Connect.",
-        usbNote: `1) Connect device using USB cable.<br>
-2) Enable <b>USB Debugging</b>.<br>
-3) Press <b>Connect</b>.`,
-        connect: "Connect",
-        extract: "View Extract Chat",
-        oldCases: "Open Old Cases",
-        modalTitle: "Old Cases",
-        noOldCases: "No old cases found yet.",
-        noExtractedChats: "No extracted chats found yet.",
-        enterIp: "Please enter IP:PORT",
-        noDate: "No date",
-        errorPrefix: "Error:"
-      },
-      ar: {
-        title: "Whisper-WA | الاتصال",
-        heading: "ربط الجهاز",
-        subtitle: "اختر طريقة الاتصال ثم اضغط اتصال",
-        wifiTab: "واي فاي (IP:PORT)",
-        usbTab: "USB",
-        wifiLabel: "IP الجهاز:PORT",
-        wifiPlaceholder: "مثال: 192.168.56.101:5555",
-        wifiNote: "أدخل IP:PORT ثم اضغط اتصال.",
-        usbNote: `1) صِل الجهاز باستخدام سلك USB.<br>
-2) فعّل <b>USB Debugging</b>.<br>
-3) اضغط <b>اتصال</b>.`,
-        connect: "اتصال",
-        extract: "عرض المحادثات",
-        oldCases: "فتح القضايا السابقة",
-        modalTitle: "القضايا السابقة",
-        noOldCases: "لا توجد قضايا سابقة حتى الآن.",
-        noExtractedChats: "لا توجد محادثات مستخرجة حتى الآن.",
-        enterIp: "الرجاء إدخال IP:PORT",
-        noDate: "لا يوجد تاريخ",
-        errorPrefix: "خطأ:"
-      }
-    };
-
-    return texts[lang][key] || texts.en[key] || "";
-  }
-
   function applyLang(lang){
     const isAr = lang === "ar";
 
     document.documentElement.lang = isAr ? "ar" : "en";
-    document.documentElement.dir = isAr ? "rtl" : "ltr";
+    document.documentElement.dir = "rtl";
+    document.body.dir = "rtl";
 
     document.title = getText("title");
 
@@ -593,12 +837,15 @@ const res = await fetch(
     document.querySelector("#wifiTab .note").textContent = getText("wifiNote");
     document.querySelector("#usbTab .note").innerHTML = getText("usbNote");
 
-    document.getElementById("btnWifiConnect").textContent = getText("connect");
-    document.getElementById("btnWifiExtract").textContent = getText("extract");
-    document.getElementById("btnWifiOldCases").textContent = getText("oldCases");
+    if (window.isWorking) {
+      setWorkingState(activeWorkflowMethod || localStorage.getItem("workflow_method") || "wifi");
+    } else if (completedCaseId) {
+      setOpenState(completedCaseId);
+    } else {
+      resetConnectButtons();
+    }
 
-    document.getElementById("btnUsbConnect").textContent = getText("connect");
-    document.getElementById("btnUsbExtract").textContent = getText("extract");
+    document.getElementById("btnWifiOldCases").textContent = getText("oldCases");
     document.getElementById("btnUsbOldCases").textContent = getText("oldCases");
 
     const modalTitle = document.querySelector(".modal-title");
@@ -609,52 +856,204 @@ const res = await fetch(
 
   window.applyLang = applyLang;
 
+  btnWifiOldCases.addEventListener("click", openOldCasesModal);
+  btnUsbOldCases.addEventListener("click", openOldCasesModal);
+
+  closeCasesModal.addEventListener("click", hideCasesModal);
+
+  casesModal.addEventListener("click", (e) => {
+    if(e.target === casesModal){
+      hideCasesModal();
+    }
+  });
+
+  tabBtns.forEach(btn => {
+    btn.addEventListener("click", () => {
+      const method = btn.dataset.tab === "usbTab" ? "usb" : "wifi";
+      activateTabByMethod(method, false);
+    });
+  });
+
+async function checkForensicNotifications(){
+
+  let user = {};
+
+  try {
+    user = JSON.parse(localStorage.getItem("currentUser") || "{}");
+  } catch(e) {
+    user = {};
+  }
+
+  if (!user.id) return;
+
+  try {
+
+    const res = await fetch(
+      `${API_BASE}/api/cases?user_id=${encodeURIComponent(user.id)}&role=${encodeURIComponent(user.role || "user")}`
+    );
+
+    const data = await res.json();
+
+    if (data.ok && Array.isArray(data.cases)) {
+
+      // الإشعارات اللي انعرضت سابقاً
+      const shownNotifications =
+        JSON.parse(localStorage.getItem("shown_case_notifications") || "[]");
+
+      // فقط القضايا الجديدة
+      const newSharedCases = data.cases.filter(c => {
+        return (
+          c.is_owner === false &&
+          !shownNotifications.includes(String(c.case_id))
+        );
+      });
+
+      if (newSharedCases.length > 0) {
+        showToastNotifications(newSharedCases);
+      }
+    }
+
+  } catch(e) {
+    console.error("Notification Fetch Error:", e);
+  }
+}
+function showToastNotifications(cases){
+  let container = document.getElementById("toast-container");
+
+  if (!container) {
+    container = document.createElement("div");
+    container.id = "toast-container";
+    document.body.appendChild(container);
+  }
+
+  const isAr = getCurrentLang() === "ar";
+
+  // القضايا اللي سبق عرض إشعاراتها
+  const shownNotifications =
+    JSON.parse(localStorage.getItem("shown_case_notifications") || "[]");
+
+  cases.forEach((c, index) => {
+
+    // إذا الإشعار انعرض قبل لا تعيده
+    if (shownNotifications.includes(c.case_id)) return;
+
+    setTimeout(() => {
+
+      const toast = document.createElement("div");
+      toast.className = "forensic-toast";
+
+      const addedBy = c.added_by_name || "Investigator";
+
+      toast.innerHTML = `
+        <div style="
+          display:flex;
+          align-items:flex-start;
+          justify-content:space-between;
+          gap:12px;
+        ">
+
+          <div style="display:flex; gap:12px; align-items:flex-start;">
+            
+            <i class="fa-solid fa-handshake-angle"
+              style="
+                color:#ffc107;
+                font-size:1.1rem;
+                margin-top:4px;
+              ">
+            </i>
+
+            <div>
+              <div style="
+                font-size:0.95rem;
+                font-weight:800;
+                color:#ffc107;
+                margin-bottom:4px;
+              ">
+                ${isAr ? "مهمة جنائية" : "Forensic Task"}
+              </div>
+
+              <div style="
+                font-size:0.82rem;
+                color:#e8e8e8;
+                line-height:1.6;
+              ">
+                ${
+                  isAr
+                    ? `المحقق <b>${addedBy}</b> أضافك إلى <b>${c.case_id}</b>`
+                    : `Investigator <b>${addedBy}</b> added you to <b>${c.case_id}</b>`
+                }
+              </div>
+            </div>
+
+          </div>
+
+          <button
+            type="button"
+            class="toast-close-btn"
+            style="
+              background:none;
+              border:none;
+              color:#777;
+              cursor:pointer;
+              font-size:1rem;
+              padding:0;
+            ">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+
+        </div>
+      `;
+
+      // زر الإغلاق
+      toast.querySelector(".toast-close-btn")
+        .addEventListener("click", () => {
+          toast.remove();
+        });
+
+      container.appendChild(toast);
+
+      // خزّن الإشعار عشان مايتكرر
+shownNotifications.push(String(c.case_id));
+      localStorage.setItem(
+        "shown_case_notifications",
+        JSON.stringify(shownNotifications)
+      );
+
+    }, index * 250);
+
+  });
+}
   window.addEventListener("DOMContentLoaded", async () => {
-    const frontendBase = window.location.href.replace(/\/[^\/?#]+(\?.*)?$/, "");
-    wifiFrontendBase.value = frontendBase;
-    usbFrontendBase.value = frontendBase;
-
     applyLang(getCurrentLang());
+    checkForensicNotifications();
 
-wifiForm.addEventListener("submit", (e) => {
-  hideAlert();
-  let ip = ipInput.value.trim();
+    const savedTab = localStorage.getItem("active_connect_tab") || "wifi";
+    activateTabByMethod(savedTab, true);
 
-  if(!ip){
-    e.preventDefault();
-    showAlert("danger", getText("enterIp"));
-    return;
-  }
+    btnWifiConnect.addEventListener("click", () => {
+      if (btnWifiConnect.classList.contains("ready") && completedCaseId) {
+        openChat(completedCaseId);
+        return;
+      }
+      runConnectWorkflow("wifi");
+    });
 
-  if(!ip.includes(":")){
-    ipInput.value = `${ip}:5555`;
-  }
+    btnUsbConnect.addEventListener("click", () => {
+      if (btnUsbConnect.classList.contains("ready") && completedCaseId) {
+        openChat(completedCaseId);
+        return;
+      }
+      runConnectWorkflow("usb");
+    });
 
-  const user = JSON.parse(localStorage.getItem("currentUser") || "{}");
+    if (localStorage.getItem("workflow_watch") === "1") {
+      window.isWorking = true;
+      activeWorkflowMethod = localStorage.getItem("workflow_method") || "wifi";
+      setWorkingState(activeWorkflowMethod);
+      showAlert("info", getText("stillWorkingMessage"));
+      startStatusWatcher();
+    }
 
-  let uid = document.getElementById("hidden_user_id");
-  if(!uid){
-    uid = document.createElement("input");
-    uid.type = "hidden";
-    uid.name = "user_id";
-    uid.id = "hidden_user_id";
-    wifiForm.appendChild(uid);
-  }
-  uid.value = user.id || "";
-});
-usbForm.addEventListener("submit", () => {
-  const user = JSON.parse(localStorage.getItem("currentUser") || "{}");
-
-  let uid = document.getElementById("hidden_user_id_usb");
-  if(!uid){
-    uid = document.createElement("input");
-    uid.type = "hidden";
-    uid.name = "user_id";
-    uid.id = "hidden_user_id_usb";
-    usbForm.appendChild(uid);
-  }
-  uid.value = user.id || "";
-});
     try{
       const res = await fetch("header.html");
       const headerHtml = await res.text();
@@ -683,6 +1082,7 @@ usbForm.addEventListener("submit", () => {
           btnLang.addEventListener("click", () => {
             setTimeout(() => {
               applyLang(getCurrentLang());
+              checkForensicNotifications();
             }, 0);
           });
         }

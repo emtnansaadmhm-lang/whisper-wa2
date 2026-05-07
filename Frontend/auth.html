@@ -565,9 +565,19 @@ document.getElementById("btnLogin").onclick = async () => {
 
       window.location.assign("./connect.html");
       return;
-    } else {
-      showAlert("danger", data.message || t.alertLoginFail);
-    }
+   } else if (data.status === "pending") {
+  showAlert("danger", currentLang === "ar"
+    ? "طلبك لا يزال قيد مراجعة المسؤول."
+    : "Your request is still pending admin approval."
+  );
+} else if (data.status === "rejected") {
+  showAlert("danger", currentLang === "ar"
+    ? "تم رفض طلبك من قبل المسؤول."
+    : "Your request has been rejected."
+  );
+} else {
+  showAlert("danger", data.message || t.alertLoginFail);
+}
   } catch (e){
     console.error("login error:", e);
     showAlert("danger", t.alertConnection);
@@ -634,8 +644,7 @@ document.getElementById("btnSubmitRequest").onclick = async () => {
       localStorage.setItem("lastRequestId", String(requestId));
       localStorage.setItem("lang", currentLang);
 
-      window.location.assign("./pending.html");
-      return;
+window.location.href = "pending.html";      return;
     } else {
       showAlert("danger", data.message || t.alertLoginFail);
     }

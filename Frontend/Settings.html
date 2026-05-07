@@ -20,7 +20,6 @@
 
     .main-container { max-width: 1000px; margin: 80px auto 40px; padding: 0 20px; }
 
-    /* الإحصائيات */
     .stats-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
     .stat-card { background: var(--glass-bg); border: 1px solid var(--glass-border); padding: 20px; border-radius: 15px; text-align: center; transition: all 0.3s ease; backdrop-filter: blur(10px); }
     .stat-card:hover { transform: translateY(-5px); border-color: var(--primary-light); box-shadow: 0 0 15px var(--primary-light); }
@@ -50,13 +49,92 @@
     .btn-logout:hover { box-shadow: 0 0 20px rgba(139, 46, 46, 0.4); transform: translateY(-2px); }
 
     [dir="ltr"] th, [dir="ltr"] td { text-align: left; }
+
+    @keyframes slideIn {
+  from { transform: translateX(50px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.pill { padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; }
+
+
+
+.collab-alert-box {
+  border-right: 5px solid #ffc107 !important;
+  background: rgba(255, 193, 7, 0.1) !important;
+  box-shadow: 0 4px 15px rgba(255, 193, 7, 0.1);
+}
+
+.investigator-badge {
+  background: #ffffff;
+  color: #0e1a12;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-weight: 900;
+  margin: 0 4px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+
+.notification-dot {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  background: #ff4d4d;
+  border-radius: 50%;
+  border: 2px solid var(--bg-dark);
+  display: none; 
+  animation: pulse-red 2s infinite;
+}
+
+@keyframes pulse-red {
+  0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(255, 77, 77, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(255, 77, 77, 0); }
+  100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(255, 77, 77, 0); }
+}
+
+
+#avatarBadge.show {
+  display: flex !important;
+  animation: pulse-red 2s infinite !important;
+  background: #ff4d4d !important;
+  box-shadow: 0 0 10px rgba(255, 77, 77, 0.5);
+}
+
+/* تنسيق حاوية التنبيهات لتظهر كقائمة جانبية احترافية */
+#collab-notifications {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 5px;
+}
+
+.collab-alert-box {
+    border-right: 4px solid #ffc107; /* تمييز جانبي بلون التنبيه */
+    background: rgba(255, 193, 7, 0.05);
+    transition: transform 0.3s ease;
+}
+
+.collab-alert-box:hover {
+    transform: scale(1.02); /* تأثير بسيط عند المرور بالماوس[cite: 1] */
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
   </style>
 </head>
 <body>
 
   <div id="header-placeholder"></div>
 
-  <div class="main-container">
+<div class="main-container">
     <div class="stats-container">
         <div class="stat-card">
             <i class="fa-solid fa-briefcase"></i>
@@ -75,12 +153,34 @@
         </div>
     </div>
 
+    
+    <div id="collab-notifications"></div>
+
     <section class="panel">
       <h2 id="txt-user-data-title" style="color: var(--primary-light); margin-bottom: 15px;">
         <i class="fa-solid fa-user-gear"></i> بيانات المستخدم
       </h2>
       <div class="profile-grid" id="profileGrid"></div>
     </section>
+
+<section class="panel" id="shared-cases-section" style="display:none; border: 1px solid var(--primary-light);">
+  <h2 id="txt-shared-title" style="color: var(--accent-glow); margin-bottom: 15px;">
+    <!-- سيتم تعبئته عبر السكريبت -->
+  </h2>
+  <div style="overflow-x: auto;">
+    <table>
+      <thead>
+        <tr>
+          <th id="th-shared-id"></th>
+          <th id="th-shared-by"></th>
+          <th id="th-shared-date"></th>
+          <th id="th-shared-actions"></th>
+        </tr>
+      </thead>
+      <tbody id="shared-cases-body"></tbody>
+    </table>
+  </div>
+</section>
 
     <section class="panel">
       <h2 id="txt-manage-cases-title" style="color: var(--primary-light); margin-bottom: 15px;">
@@ -102,6 +202,8 @@
     </section>
 
     <button class="btn-logout" id="btnLogout">تسجيل الخروج</button>
+
+    
   </div>
 
   <script>
@@ -111,7 +213,7 @@
     const dict = {
         ar: {
             userData: "بيانات المستخدم", name: "الاسم", email: "البريد", role: "الصلاحية",
-            manageCases: "إدارة القضايا", id: "المعرف", date: "التاريخ", actions: "الإجراءات",
+            manageCases: "إدارة القضايا المستقلة", id: "المعرف", date: "التاريخ", actions: "الإجراءات",
             view: "عرض", delete: "حذف", logout: "تسجيل الخروج",
             statTotal: "إجمالي القضايا", statActivity: "آخر نشاط", statStatus: "حالة الحماية",
             statStatusVal: "نشط", searchPH: "بحث برقم القضية...",
@@ -119,7 +221,7 @@
         },
         en: {
             userData: "User Data", name: "Name", email: "Email", role: "Role",
-            manageCases: "Manage Cases", id: "ID", date: "Date", actions: "Actions",
+            manageCases: "Manage Independent Case", id: "ID", date: "Date", actions: "Actions",
             view: "View", delete: "Delete", logout: "Logout",
             statTotal: "Total Cases", statActivity: "Last Activity", statStatus: "Security Status",
             statStatusVal: "Active", searchPH: "Search case ID...",
@@ -135,7 +237,7 @@
 
         
         document.getElementById("txt-user-data-title").innerHTML = `<i class="fa-solid fa-user-gear"></i> ${t.userData}`;
-        document.getElementById("txt-manage-cases-title").innerHTML = `<i class="fa-solid fa-folder-open"></i> ${t.manageCases}`;
+        document.getElementById("txt-manage-cases-title").innerHTML = `<i class="fa-solid fa-file-shield"></i> ${t.manageCases}`;
         document.getElementById("th-id").textContent = t.id;
         document.getElementById("th-date").textContent = t.date;
         document.getElementById("th-actions").textContent = t.actions;
@@ -146,32 +248,79 @@
         document.getElementById("txt-stat-activity").textContent = t.statActivity;
         document.getElementById("txt-stat-status").textContent = t.statStatus;
         document.getElementById("txt-stat-status-val").textContent = t.statStatusVal;
+       
+    const sharedTitle = document.getElementById("txt-shared-title");
+    if (sharedTitle) sharedTitle.innerHTML = `<i class="fa-solid fa-users-viewfinder"></i> ${lang === "ar" ? "القضايا المشتركة" : "Shared Cases"}`;
+    
+    const thSharedId = document.getElementById("th-shared-id");
+    const thSharedBy = document.getElementById("th-shared-by");
+    const thSharedDate = document.getElementById("th-shared-date");
+    const thSharedActions = document.getElementById("th-shared-actions");
 
-        loadData();
+    if (thSharedId) thSharedId.textContent = t.id;
+    if (thSharedDate) thSharedDate.textContent = t.date;
+    if (thSharedBy) thSharedBy.textContent = lang === "ar" ? "أضيفت بواسطة" : "Added By";
+    if (thSharedActions) thSharedActions.textContent = t.actions;
+
+    loadData();
+}
+
+
+
+async function loadData() {
+    const user = JSON.parse(localStorage.getItem("currentUser") || "{}");
+    const t = dict[currentLang];
+    const isAr = currentLang === "ar";
+    
+  
+    if (user.id) {
+        document.getElementById("profileGrid").innerHTML = `
+            <div class="info-card"><label>${t.name}</label><div>${user.name}</div></div>
+            <div class="info-card"><label>${t.email}</label><div>${user.email}</div></div>
+            <div class="info-card"><label>${t.role}</label><div>${user.role}</div></div>`;
     }
 
-    async function loadData() {
-        const user = JSON.parse(localStorage.getItem("currentUser") || "{}");
-        const t = dict[currentLang];
+    try {
+       
+        const res = await fetch(`${API_BASE}/api/cases?user_id=${user.id}&role=${user.role}`);
+        const data = await res.json();
         
-        if (user.id) {
-            document.getElementById("profileGrid").innerHTML = `
-                <div class="info-card"><label>${t.name}</label><div>${user.name}</div></div>
-                <div class="info-card"><label>${t.email}</label><div>${user.email}</div></div>
-                <div class="info-card"><label>${t.role}</label><div>${user.role}</div></div>`;
-        }
+        if (data.ok && data.cases) {
+        
+            document.getElementById("stat-total-cases").textContent = data.cases.length;
+            if(data.cases.length > 0) {
+                document.getElementById("stat-last-login").textContent = data.cases[0].created_at_text.split(' ')[0];
+            }
 
-        try {
-            const res = await fetch(`${API_BASE}/api/cases?user_id=${user.id}&role=${user.role}`);
-            const data = await res.json();
+            const myCases = data.cases.filter(c => c.is_owner !== false);
+            const sharedCases = data.cases.filter(c => c.is_owner === false);
+            
+           
             const tbody = document.getElementById("cases-body");
-            if (tbody && data.ok) {
-                document.getElementById("stat-total-cases").textContent = data.cases.length;
-                if(data.cases.length > 0) document.getElementById("stat-last-login").textContent = data.cases[0].created_at_text.split(' ')[0];
+            tbody.innerHTML = myCases.map(c => `
+                <tr>
+                    <td><strong>${c.case_id}</strong></td>
+                    <td>${c.created_at_text || '---'}</td>
+                    <td>
+                        <button class="btn-action btn-view" onclick="goToCase('${c.case_id}')">${t.view}</button>
+                        <button class="btn-action btn-delete" onclick="handleDelete('${c.case_id}')">${t.delete}</button>
+                    </td>
+                </tr>
+            `).join("");
+
+           
+            const sharedSection = document.getElementById("shared-cases-section");
+            const collabNotify = document.getElementById("collab-notifications");
+
+            if (sharedCases.length > 0) {
+              
+                sharedSection.style.display = "block";
                 
-                tbody.innerHTML = data.cases.map(c => `
+                const sharedTbody = document.getElementById("shared-cases-body");
+                sharedTbody.innerHTML = sharedCases.map(c => `
                     <tr>
-                        <td>${c.case_id}</td>
+                        <td><strong>${c.case_id}</strong></td>
+                        <td><span style="color:var(--accent-glow); font-weight:bold;">${c.added_by_name || 'System'}</span></td>
                         <td>${c.created_at_text || '---'}</td>
                         <td>
                             <button class="btn-action btn-view" onclick="goToCase('${c.case_id}')">${t.view}</button>
@@ -179,66 +328,95 @@
                         </td>
                     </tr>
                 `).join("");
-            }
-        } catch (e) { console.error(e); }
-    }
 
-    document.getElementById("tableSearch").onkeyup = function() {
-        let val = this.value.toLowerCase();
-        let rows = document.querySelectorAll("#cases-body tr");
-        rows.forEach(row => {
-            row.style.display = row.textContent.toLowerCase().includes(val) ? "" : "none";
-        });
-    };
-
-    async function initHeader() {
-        try {
-            const res = await fetch("header.html");
-            document.getElementById("header-placeholder").innerHTML = await res.text();
-            
-            const btnAccount = document.getElementById("btnAccount");
-            const accountMenu = document.getElementById("accountMenu");
-            if (btnAccount && accountMenu) {
-                btnAccount.onclick = (e) => { e.preventDefault(); e.stopPropagation(); accountMenu.classList.toggle("open"); };
-            }
-            const btnBack = document.getElementById("btnBack") || 
-                document.querySelector(".fa-arrow-right")?.parentElement ||
-                document.querySelector(".fa-arrow-left")?.parentElement;
-
-if (btnBack) {
-    btnBack.style.cursor = "pointer"; 
-    btnBack.onclick = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        console.log("تم الضغط على سهم العودة");
-        
-      
-        if (window.history.length > 1) {
-            window.history.back();
-        } else {
-            window.location.href = "chat.html";
-        }
-    };
+const avatarBadge = document.getElementById("avatarBadge");
+if (avatarBadge) {
+    avatarBadge.style.display = "flex";
+    avatarBadge.classList.add("show");
+    avatarBadge.textContent = sharedCases.length; 
 }
 
-            const btnLang = document.getElementById("btnLang");
-            const langText = document.getElementById("langText");
-            if (btnLang) {
-                btnLang.onclick = (e) => {
-                    e.preventDefault();
-                    const newLang = (localStorage.getItem("lang") === "ar") ? "en" : "ar";
-                    localStorage.setItem("lang", newLang);
-                    if (langText) langText.textContent = (newLang === "ar") ? "EN" : "AR";
-                    applySettingsLang(newLang);
-                };
-                const saved = localStorage.getItem("lang") || "ar";
-                if (langText) langText.textContent = (saved === "ar") ? "EN" : "AR";
-            }
-            
-            document.addEventListener("click", () => { if(accountMenu) accountMenu.classList.remove("open"); });
-        } catch (e) { console.error(e); }
-        applySettingsLang(localStorage.getItem("lang") || "ar");
+                
+const latest = sharedCases[0];
+// تعديل نظام التنبيهات لعرض كل القضايا
+    collabNotify.innerHTML = sharedCases.map(caseItem => `
+        <div class="panel collab-alert-box" style="margin-bottom: 15px; animation: slideIn 0.5s ease-out;">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <i class="fa-solid fa-handshake-angle" style="font-size: 1.5rem; color: #ffc107;"></i>
+                <div>
+                    <h4 style="color: #ffc107; margin-bottom: 2px; font-size: 0.9rem;">
+                        ${isAr ? 'تنبيه تعاون جنائي' : 'Forensic Task Alert'}
+                    </h4>
+                    <p style="font-size: 0.85rem; color: var(--text-white);">
+                        ${isAr ? 
+                            `كلفك المحقق <span class="investigator-badge">${caseItem.added_by_name}</span> بالقضية <b>${caseItem.case_id}</b>` : 
+                            `Investigator <span class="investigator-badge">${caseItem.added_by_name}</span> assigned you to <b>${caseItem.case_id}</b>`}
+                    </p>
+                </div>
+            </div>
+        </div>
+    `).join("");
+
+} else {
+    sharedSection.style.display = "none";
+    collabNotify.innerHTML = "";
+}
+        }
+    } catch (e) { 
+        console.error("Error loading collaboration data:", e); 
     }
+}
+
+async function initHeader() {
+    try {
+        const res = await fetch("header.html");
+        document.getElementById("header-placeholder").innerHTML = await res.text();
+        
+        const btnAccount = document.getElementById("btnAccount");
+        const accountMenu = document.getElementById("accountMenu");
+        const menuLogout = document.getElementById("menuLogout"); 
+
+        if (btnAccount && accountMenu) {
+            btnAccount.onclick = (e) => { 
+                e.preventDefault(); 
+                e.stopPropagation(); 
+                accountMenu.classList.toggle("open"); 
+            };
+        }
+
+        
+        if (menuLogout) {
+            menuLogout.onclick = (e) => {
+                e.preventDefault();
+                localStorage.clear(); 
+                window.location.href = "index.html";
+            };
+        }
+
+       
+        const btnBack = document.getElementById("btnBack");
+        if (btnBack) {
+            btnBack.onclick = (e) => {
+                e.preventDefault();
+                if (window.history.length > 1) window.history.back();
+                else window.location.href = "chat.html";
+            };
+        }
+
+    
+        const btnLang = document.getElementById("btnLang");
+        if (btnLang) {
+            btnLang.onclick = (e) => {
+                const newLang = (localStorage.getItem("lang") === "ar") ? "en" : "ar";
+                localStorage.setItem("lang", newLang);
+                applySettingsLang(newLang);
+            };
+        }
+        
+        document.addEventListener("click", () => { if(accountMenu) accountMenu.classList.remove("open"); });
+    } catch (e) { console.error("Header init error:", e); }
+    applySettingsLang(localStorage.getItem("lang") || "ar");
+}
 
     async function handleDelete(caseId) {
         const t = dict[currentLang];
@@ -253,10 +431,46 @@ if (btnBack) {
         } catch (e) { alert("Error"); }
     }
 
-    function goToCase(id) { localStorage.setItem("case_id", id); window.location.href = "chat.html"; }
+function goToCase(id) { viewCaseDetails(id); }
     document.getElementById("btnLogout").onclick = () => { localStorage.clear(); window.location.href = "index.html"; };
     
     window.onload = initHeader;
+    // ابحثي عن الدالة المسؤولة عن زر View أو أضيفيها
+function viewCaseDetails(caseId) {
+    // الخطوة 1: مسح أي قضية قديمة مخزنة لضمان عدم التداخل
+    localStorage.removeItem("case_id");
+    localStorage.setItem("case_id", caseId);
+
+    // الخطوة 2: تحديث CURRENT_CASE_ID وهو اللي يعتمد عليه الهيدر والشات
+    localStorage.setItem("CURRENT_CASE_ID", caseId);
+
+    // الخطوة 3: الانتقال الفوري لصفحة الشات مع تمرير الرقم في الرابط[cite: 6, 7]
+    window.location.href = `chat.html?case_id=${caseId}`;
+}
+
+// دالة التعامل مع حذف القضايا المشتركة
+async function handleDeleteSharedCase(caseId) {
+    if (!confirm(`هل أنتِ متأكدة من حذف القضية المشتركة ${caseId}؟`)) return;
+
+    try {
+        const res = await fetch(`${API_BASE}/api/case/delete`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ case_id: caseId })
+        });
+
+        const data = await res.json();
+        if (data.ok) {
+            alert("تم حذف القضية بنجاح");
+            loadData(); // إعادة تحميل الجداول لتحديث القائمة[cite: 1]
+        } else {
+            alert(data.error || "فشل حذف القضية");
+        }
+    } catch (e) {
+        console.error("Delete Error:", e);
+        alert("حدث خطأ أثناء الاتصال بالخادم");
+    }
+}
   </script>
 </body>
 </html>

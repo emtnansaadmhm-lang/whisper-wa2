@@ -151,25 +151,6 @@
       line-height: 1.7;
     }
 
-    .risk-card{
-      border-color: rgba(255,255,255,0.10);
-    }
-
-    .risk-danger{
-      border-color: rgba(255, 77, 77, 0.35);
-      background: rgba(255, 77, 77, 0.08);
-    }
-
-    .risk-warn{
-      border-color: rgba(255, 193, 7, 0.35);
-      background: rgba(255, 193, 7, 0.08);
-    }
-
-    .risk-ok{
-      border-color: rgba(95,191,122,0.28);
-      background: rgba(95,191,122,0.08);
-    }
-
     .list{
       display:flex;
       flex-direction:column;
@@ -223,7 +204,6 @@
       filter:brightness(1.15);
       transform: translateY(-1px);
     }
-
 
     .danger{
       background: rgba(255, 77, 77, 0.12);
@@ -374,6 +354,7 @@
     let currentLang = localStorage.getItem("lang") || "ar";
     let analysisLoaded = false;
     let analysisLoading = false;
+    let analysisAbortController = null;
 
     const caseId =
       new URLSearchParams(window.location.search).get("case_id") ||
@@ -392,7 +373,6 @@
         topMsgTitle: "أكثر رسالة مشبوهة",
         recTitle: "التوصيات",
         urlsTitle: "الروابط المستخرجة",
-        numbersTitle: "الأرقام المستخرجة",
         keywordsTitle: "الكلمات المشبوهة",
         keywordsNote: "مرات الظهور",
         s_total: "عدد الرسائل",
@@ -401,11 +381,8 @@
         s_summary: "ملخص التحليل",
         s_sent: "مرسل",
         s_recv: "مستلم",
-        s_risk: "تقييم الخطورة",
-        s_spoofing: "روابط مزيفة",
         times: "مرة",
         links: "روابط",
-        numbers: "أرقام",
         emails: "بريد إلكتروني",
         keywords: "كلمات",
         spoofing: "انتحال",
@@ -424,12 +401,6 @@
         noTopMessage: "لا توجد رسالة تستحق التصنيف كرسالة مشبوهة حاليًا",
         loading: "جاري تحميل التحليل...",
         failed: "فشل تحميل التحليل",
-        score: "درجة الاشتباه",
-        reasons: "الأسباب",
-        riskHigh: "مرتفع",
-        riskMedium: "متوسط",
-        riskLow: "منخفض",
-        riskClean: "لا توجد مؤشرات قوية",
         possibleSpoof: "اشتباه انتحال",
         resembles: "يشبه"
       },
@@ -443,7 +414,6 @@
         topMsgTitle: "Top Suspicious Message",
         recTitle: "Recommendations",
         urlsTitle: "Extracted URLs",
-        numbersTitle: "Extracted Numbers",
         keywordsTitle: "Suspicious Keywords",
         keywordsNote: "Occurrences",
         s_total: "Total Messages",
@@ -452,11 +422,8 @@
         s_summary: "Analysis Summary",
         s_sent: "Sent",
         s_recv: "Received",
-        s_risk: "Risk Assessment",
-        s_spoofing: "Spoofed URLs",
         times: "times",
         links: "URLs",
-        numbers: "Numbers",
         emails: "Emails",
         keywords: "Keywords",
         spoofing: "Spoofing",
@@ -475,12 +442,6 @@
         noTopMessage: "No message currently qualifies as suspicious",
         loading: "Loading analysis...",
         failed: "Failed to load analysis",
-        score: "Suspicion Score",
-        reasons: "Reasons",
-        riskHigh: "High",
-        riskMedium: "Medium",
-        riskLow: "Low",
-        riskClean: "No strong indicators",
         possibleSpoof: "Possible spoofing",
         resembles: "resembles"
       }
@@ -495,7 +456,6 @@
         last_contact: "-",
         urls_count: 0,
         spoofing_urls_count: 0,
-        numbers_count: 0,
         emails_count: 0,
         keyword_hits_total: 0
       },
@@ -505,7 +465,6 @@
       top_suspicious_message: null,
       recommendations: { items_ar: [], items_en: [] },
       urls: [],
-      numbers: [],
       keywords: []
     };
 
@@ -520,21 +479,6 @@
 
     function setPill(el, text){
       if (el) el.textContent = text;
-    }
-
-    function getRiskInfo(){
-      const t = UI[currentLang];
-      const hasDanger = raw.flags.some(f => (f.level || "") === "danger");
-      const hasWarn = raw.flags.some(f => (f.level || "") === "warn");
-      const spoofCount = raw.summary.spoofing_urls_count || raw.urls.filter(u => u.is_spoofing).length;
-
-      if (hasDanger || spoofCount > 0) {
-        return { label: t.riskHigh, cls: "risk-danger", pill: "danger" };
-      }
-      if (hasWarn) {
-        return { label: t.riskMedium, cls: "risk-warn", pill: "warn" };
-      }
-      return { label: t.riskClean, cls: "risk-ok", pill: "ok" };
     }
 
     function renderSummary(s){
@@ -595,20 +539,18 @@
         return;
       }
 
-      list
-        .filter(r => r.id !== "ratio")
-        .forEach(r=>{
-          const div = document.createElement("div");
-          div.className = "item";
-          const val = (currentLang === "ar") ? (r.value_ar || r.value || "-") : (r.value_en || r.value || "-");
-          div.innerHTML = `
-            <div class="row">
-              <span class="mono">${escapeHtml(labelMap[r.id] || r.label || r.id || "-")}</span>
-              <span class="pill ok">${escapeHtml(val)}</span>
-            </div>
-          `;
-          wrap.appendChild(div);
-        });
+      list.filter(r => r.id !== "ratio").forEach(r=>{
+        const div = document.createElement("div");
+        div.className = "item";
+        const val = currentLang === "ar" ? (r.value_ar || r.value || "-") : (r.value_en || r.value || "-");
+        div.innerHTML = `
+          <div class="row">
+            <span class="mono">${escapeHtml(labelMap[r.id] || r.label || r.id || "-")}</span>
+            <span class="pill ok">${escapeHtml(val)}</span>
+          </div>
+        `;
+        wrap.appendChild(div);
+      });
     }
 
     function renderFlags(flags){
@@ -625,8 +567,8 @@
         const level = f.level || "ok";
         const pillClass = level === "danger" ? "danger" : (level === "warn" ? "warn" : "ok");
         const pillText = level === "danger" ? t.p_important : (level === "warn" ? t.p_warn : t.p_ok);
-        const title = (currentLang === "ar") ? (f.title_ar || f.title || "-") : (f.title_en || f.title || "-");
-        const desc  = (currentLang === "ar") ? (f.desc_ar || f.description || f.desc || "-") : (f.desc_en || f.description || f.desc || "-");
+        const title = currentLang === "ar" ? (f.title_ar || f.title || "-") : (f.title_en || f.title || "-");
+        const desc  = currentLang === "ar" ? (f.desc_ar || f.description || f.desc || "-") : (f.desc_en || f.description || f.desc || "-");
 
         const div = document.createElement("div");
         div.className = `item ${level === "danger" ? "danger-border" : level === "warn" ? "warn-border" : "ok-border"}`;
@@ -678,19 +620,18 @@
         ? (msg.text_preview_ar || msg.text_preview || "-")
         : (msg.text_preview_en || msg.text_preview || "-");
 
-      const rawReasons = currentLang === "ar"
-        ? (msg.reasons_ar || [])
-        : (msg.reasons_en || []);
-
+      const rawReasons = currentLang === "ar" ? (msg.reasons_ar || []) : (msg.reasons_en || []);
       const reasons = rawReasons
         .filter(r => !String(r).toLowerCase().includes("external url") && !String(r).includes("رابط خارجي"))
         .slice(0, 2);
+
+      const safeId = escapeHtml(msg.message_id || "");
 
       const div = document.createElement("div");
       div.className = "item danger-border";
       div.innerHTML = `
         <div class="row">
-          <button type="button" class="pill ok" onclick="goToMessage('${escapeHtml(msg.message_id || "")}')">
+          <button type="button" class="pill ok" data-message-id="${safeId}">
             <i class="fa-solid fa-location-arrow"></i>
             ${currentLang === "ar" ? "اذهب للرسالة" : "Go to Message"}
           </button>
@@ -703,6 +644,11 @@
         ` : ""}
       `;
       wrap.appendChild(div);
+
+      const btn = div.querySelector("button[data-message-id]");
+      if (btn) {
+        btn.addEventListener("click", () => goToMessage(msg.message_id || ""));
+      }
     }
 
     function renderRecommendations(data){
@@ -710,9 +656,7 @@
       const wrap = document.getElementById("recommendationsList");
       wrap.innerHTML = "";
 
-      const items = currentLang === "ar"
-        ? (data?.items_ar || [])
-        : (data?.items_en || []);
+      const items = currentLang === "ar" ? (data?.items_ar || []) : (data?.items_en || []);
 
       if (!items.length){
         wrap.innerHTML = `<div class="muted">${t.noData}</div>`;
@@ -743,6 +687,7 @@
         const value = u.url || u.value || u.link || "-";
         const count = u.count || u.hits || 1;
         const isSpoof = Boolean(u.is_spoofing);
+
         const div = document.createElement("div");
         div.className = `item ${isSpoof ? "danger-border" : ""}`;
         div.innerHTML = `
@@ -778,7 +723,6 @@
       keys.forEach(k=>{
         const div = document.createElement("div");
         div.className = "item";
-
         const keyword = k.keyword || k.value || "-";
         const hits = k.hits || k.count || 1;
 
@@ -805,16 +749,17 @@
 
     function applyLangToHeaderAndPage(){
       const t = UI[currentLang];
-      const html = document.documentElement;
 
-      html.lang = currentLang;
-      html.dir  = (currentLang === "ar") ? "rtl" : "ltr";
+      document.documentElement.lang = currentLang;
+      document.documentElement.dir = "rtl";
+      document.body.dir = "rtl";
       document.title = t.title;
 
       const topSubtitle = document.getElementById("top-subtitle");
       const langText = document.getElementById("langText");
+
       if (topSubtitle) topSubtitle.textContent = t.topSubtitle;
-      if (langText) langText.textContent = (currentLang === "en") ? "AR" : "EN";
+      if (langText) langText.textContent = currentLang === "en" ? "AR" : "EN";
 
       const ids = {
         "txt-summary-title": t.summaryTitle,
@@ -836,40 +781,44 @@
 
     function normalizeAnalysisResponse(data){
       const summary = data.summary || data.overview || {};
+      const urls = data.urls || data.extracted_urls || [];
+      const keywords = data.keywords || data.keyword_hits || [];
 
       raw.summary.total_messages = summary.total_messages ?? summary.total ?? data.total_messages ?? 0;
       raw.summary.sent = summary.sent ?? summary.sent_messages ?? data.sent ?? 0;
       raw.summary.received = summary.received ?? summary.received_messages ?? data.received ?? 0;
       raw.summary.first_contact = summary.first_contact ?? summary.first_message_time ?? data.first_contact ?? "-";
       raw.summary.last_contact = summary.last_contact ?? summary.last_message_time ?? data.last_contact ?? "-";
-      raw.summary.urls_count = summary.urls_count ?? ((data.urls || data.extracted_urls || []).length) ?? 0;
-      raw.summary.spoofing_urls_count = summary.spoofing_urls_count ?? 0;
-      raw.summary.numbers_count = summary.numbers_count ?? ((data.numbers || data.extracted_numbers || []).length) ?? 0;
+      raw.summary.urls_count = summary.urls_count ?? urls.length ?? 0;
+      raw.summary.spoofing_urls_count = summary.spoofing_urls_count ?? urls.filter(u => u.is_spoofing).length;
       raw.summary.emails_count = summary.emails_count ?? ((data.emails || data.extracted_emails || []).length) ?? 0;
-      raw.summary.keyword_hits_total = summary.keyword_hits_total ?? summary.keywords_total ?? 0;
+      raw.summary.keyword_hits_total = summary.keyword_hits_total ?? summary.keywords_total ?? keywords.length ?? 0;
 
       raw.activity = data.activity || data.activity_pattern || [];
       raw.flags = data.flags || data.indicators || data.initial_flags || [];
       raw.flow = data.flow || null;
       raw.top_suspicious_message = data.top_suspicious_message || null;
       raw.recommendations = data.recommendations || { items_ar: [], items_en: [] };
-      raw.urls = data.urls || data.extracted_urls || [];
-      raw.numbers = data.numbers || data.extracted_numbers || [];
-      raw.keywords = data.keywords || data.keyword_hits || [];
-
-      if (!raw.summary.spoofing_urls_count) {
-        raw.summary.spoofing_urls_count = raw.urls.filter(u => u.is_spoofing).length;
-      }
+      raw.urls = urls;
+      raw.keywords = keywords;
     }
 
     function fillAllAsNoData(message){
       [
-        "summaryStats", "activityList", "flagsList", "flowList", "topMessageList",
-        "recommendationsList", "urlsList", "keywordsList"
+        "summaryStats",
+        "activityList",
+        "flagsList",
+        "flowList",
+        "topMessageList",
+        "recommendationsList",
+        "urlsList",
+        "keywordsList"
       ].forEach(id => {
         const el = document.getElementById(id);
-        if (el) el.innerHTML = `<div class="muted">${message}</div>`;
+        if (el) el.innerHTML = `<div class="muted">${escapeHtml(message)}</div>`;
       });
+
+      setPill(document.getElementById("urlsCountPill"), "0");
     }
 
     async function loadRealAnalysis() {
@@ -883,10 +832,24 @@
       }
 
       analysisLoading = true;
-      document.getElementById("summaryStats").innerHTML = `<div class="muted">${t.loading}</div>`;
+
+      if (analysisAbortController) {
+        analysisAbortController.abort();
+      }
+
+      analysisAbortController = new AbortController();
+
+      const summaryStats = document.getElementById("summaryStats");
+      if (summaryStats) {
+        summaryStats.innerHTML = `<div class="muted">${escapeHtml(t.loading)}</div>`;
+      }
 
       try {
-        const res = await fetch(`${API_BASE}/api/analysis/${caseId}`, { cache: "no-store" });
+        const res = await fetch(`${API_BASE}/api/analysis/${encodeURIComponent(caseId)}`, {
+          cache: "no-store",
+          signal: analysisAbortController.signal
+        });
+
         const data = await res.json();
 
         if (!res.ok || !data.ok) {
@@ -899,40 +862,86 @@
         analysisLoaded = true;
 
       } catch (e) {
-        console.error("Analysis load failed:", e);
-        fillAllAsNoData(t.failed);
+        if (e.name !== "AbortError") {
+          console.error("Analysis load failed:", e);
+          fillAllAsNoData(t.failed);
+        }
       } finally {
         analysisLoading = false;
       }
     }
 
+    function setupHeaderMenu(){
+      const btnAccount = document.getElementById("btnAccount");
+      const menu = document.getElementById("accountMenu");
+
+      if (btnAccount && menu) {
+        btnAccount.onclick = (e) => {
+          e.stopPropagation();
+          menu.classList.toggle("open");
+        };
+
+        document.onclick = () => {
+          if (menu.classList.contains("open")) {
+            menu.classList.remove("open");
+          }
+        };
+
+        menu.onclick = (e) => e.stopPropagation();
+      }
+
+      const menuAdmin = document.getElementById("menuAdmin");
+      const menuAdminBadge = document.getElementById("menuAdminBadge");
+      const avatarBadge = document.getElementById("avatarBadge");
+      const role = (localStorage.getItem("userRole") || "").toLowerCase();
+
+      if (menuAdmin) {
+        if (role === "admin") {
+          menuAdmin.classList.add("show");
+          menuAdmin.style.display = "flex";
+        } else {
+          menuAdmin.classList.remove("show");
+          menuAdmin.style.display = "none";
+        }
+      }
+
+      if (menuAdminBadge) menuAdminBadge.textContent = "0";
+      if (avatarBadge) avatarBadge.classList.remove("show");
+    }
+
     async function loadHeaderOnlyOnce() {
       try {
-        const res = await fetch("header.html");
+        const res = await fetch("header.html", { cache: "no-store" });
         const headerHtml = await res.text();
         const holder = document.getElementById("header-placeholder");
 
-        if (holder) {
-          const temp = document.createElement("div");
-          temp.innerHTML = headerHtml;
+        if (!holder) return;
 
-          const scripts = temp.querySelectorAll("script");
-          scripts.forEach(s => s.remove());
+        const temp = document.createElement("div");
+        temp.innerHTML = headerHtml;
 
-          holder.innerHTML = "";
-          holder.append(...temp.childNodes);
-        }
+        const scripts = temp.querySelectorAll("script");
+        scripts.forEach(s => s.remove());
+
+        holder.innerHTML = "";
+        holder.append(...temp.childNodes);
+
+        setupHeaderMenu();
 
         const backBtn = document.getElementById("btnBack");
         if (backBtn) {
           backBtn.style.display = "inline-flex";
-          backBtn.onclick = () => window.location.href = caseId ? `chat.html?case_id=${encodeURIComponent(caseId)}` : "chat.html";
+          backBtn.onclick = () => {
+            window.location.href = caseId
+              ? `chat.html?case_id=${encodeURIComponent(caseId)}`
+              : "chat.html";
+          };
         }
 
         const btnLang = document.getElementById("btnLang");
         if (btnLang) {
           btnLang.onclick = () => {
-            currentLang = (currentLang === "ar") ? "en" : "ar";
+            currentLang = currentLang === "ar" ? "en" : "ar";
             localStorage.setItem("lang", currentLang);
             applyLangToHeaderAndPage();
             renderAll();
@@ -943,7 +952,6 @@
         console.error("Header load failed:", e);
       }
     }
-
 
     function goToMessage(messageId) {
       if (!messageId) return;
@@ -958,6 +966,12 @@
       applyLangToHeaderAndPage();
       await loadRealAnalysis();
     }, { once: true });
+
+    window.addEventListener("beforeunload", () => {
+      if (analysisAbortController) {
+        analysisAbortController.abort();
+      }
+    });
   </script>
 </body>
 </html>

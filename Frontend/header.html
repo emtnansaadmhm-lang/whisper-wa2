@@ -1,6 +1,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
 <style>
+
   .ww-topbar{
     background: rgba(20, 40, 30, 0.65);
     border: 1px solid rgba(95, 191, 122, 0.3);
@@ -14,212 +15,66 @@
     position: relative;
     z-index: 9999;
   }
+  .ww-left{ display:flex; align-items:center; gap:12px; min-width: 240px; }
+  .ww-brand{ display:flex; align-items:center; gap:12px; }
+  .ww-logo{ height:42px; width:auto; filter: drop-shadow(0 0 6px rgba(63,155,95,0.5)); }
+  .ww-title{ display:flex; flex-direction:column; line-height:1.1; }
+  .ww-title b{ font-size:1.15rem; color:#fff; }
+  .ww-title span{ color:#c2dec9; font-size:0.85rem; margin-top:4px; }
+  .ww-actions{ display:flex; align-items:center; gap:10px; }
+  .ww-icon-btn, .ww-avatar-btn{ border:none; background: rgba(0,0,0,0.18); color:#c2dec9; width:38px; height:38px; border-radius:12px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:0.2s; position: relative; }
+  .ww-icon-btn:hover, .ww-avatar-btn:hover{ background: rgba(95,191,122,0.14); color:#8fd9a8; transform: translateY(-1px); }
+  .ww-lang-btn{ background: rgba(95,191,122,0.10); border: 1px solid rgba(95, 191, 122, 0.3); color:#8fd9a8; padding: 8px 14px; border-radius: 999px; cursor:pointer; font-weight:900; transition:0.25s; user-select:none; }
+  .ww-lang-btn:hover{ background: rgba(95,191,122,0.18); transform: translateY(-1px); }
+  .ww-dropdown{ position: relative; }
 
-  .ww-left{
-    display:flex;
-    align-items:center;
-    gap:12px;
-    min-width: 240px;
-  }
-
-  .ww-brand{
-    display:flex;
-    align-items:center;
-    gap:12px;
-  }
-
-  .ww-logo{
-    height:42px;
-    width:auto;
-    filter: drop-shadow(0 0 6px rgba(63,155,95,0.5));
-  }
-
-  .ww-title{
-    display:flex;
-    flex-direction:column;
-    line-height:1.1;
-  }
-
-  .ww-title b{
-    font-size:1.15rem;
-    color:#fff;
-  }
-
-  .ww-title span{
-    color:#c2dec9;
-    font-size:0.85rem;
-    margin-top:4px;
-  }
-
-  .ww-actions{
-    display:flex;
-    align-items:center;
-    gap:10px;
-  }
-
-  .ww-icon-btn{
-    border:none;
-    background: rgba(0,0,0,0.18);
-    color:#c2dec9;
-    width:38px;
-    height:38px;
-    border-radius:12px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    cursor:pointer;
-    transition:0.2s;
-  }
-
-  .ww-icon-btn:hover{
-    background: rgba(95,191,122,0.14);
-    color:#8fd9a8;
-    transform: translateY(-1px);
-  }
-
-  .ww-lang-btn{
-    background: rgba(95,191,122,0.10);
-    border: 1px solid rgba(95, 191, 122, 0.3);
-    color:#8fd9a8;
-    padding: 8px 14px;
-    border-radius: 999px;
-    cursor:pointer;
-    font-weight:900;
-    transition:0.25s;
-    user-select:none;
-  }
-
-  .ww-lang-btn:hover{
-    background: rgba(95,191,122,0.18);
-    transform: translateY(-1px);
-  }
-
-  .ww-dropdown{
-    position: relative;
-  }
-
-  .ww-avatar-btn{
-    border:none;
-    background: rgba(0,0,0,0.18);
-    width:38px;
-    height:38px;
-    border-radius:12px;
-    cursor:pointer;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    color:#c2dec9;
-    transition:0.2s;
-    position: relative;
-  }
-
-  .ww-avatar-btn:hover{
-    background: rgba(95,191,122,0.14);
-    color:#8fd9a8;
-    transform: translateY(-1px);
-  }
-
+  /* --- تحسين أيقونة التنبيه الحمراء --- */
   .ww-avatar-badge{
-    position: absolute;
-    top: -4px;
-    right: -4px;
+    position: absolute; top: -4px; right: -4px;
     background: linear-gradient(135deg, #ff6b6b, #ff4757);
-    color: white;
-    font-size: 0.7rem;
-    font-weight: 900;
-    min-width: 18px;
-    height: 18px;
-    border-radius: 999px;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    padding: 0 4px;
-    border: 2px solid var(--bg-dark, #0e1a12);
+    color: white; font-size: 0.7rem; font-weight: 900;
+    min-width: 18px; height: 18px; border-radius: 999px;
+    display: none; align-items: center; justify-content: center;
+    padding: 0 4px; border: 2px solid #0e1a12;
     box-shadow: 0 2px 8px rgba(255,75,87,0.4);
   }
-
   .ww-avatar-badge.show{
-    display: flex;
+    display: flex !important;
+    animation: pulse-red 2s infinite !important;
+  }
+  @keyframes pulse-red {
+    0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(255, 77, 77, 0.7); }
+    70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(255, 77, 77, 0); }
+    100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(255, 77, 77, 0); }
   }
 
-  .ww-menu{
-    position:absolute;
-    top: calc(100% + 10px);
-    inset-inline-end: 0;
-    inset-inline-start: auto;
-    min-width: 220px;
-    background: rgba(20, 40, 30, 0.92);
-    border: 1px solid rgba(95, 191, 122, 0.3);
-    backdrop-filter: blur(12px);
-    border-radius: 14px;
-    padding: 8px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
-    display:none;
-    z-index: 20000;
-  }
+  .ww-menu{ position:absolute; top: calc(100% + 10px); inset-inline-end: 0; min-width: 220px; background: rgba(20, 40, 30, 0.92); border: 1px solid rgba(95, 191, 122, 0.3); backdrop-filter: blur(12px); border-radius: 14px; padding: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.35); display:none; z-index: 20000; }
+  .ww-menu.open{ display:block; }
+  .ww-menu-item{ width:100%; display:flex; align-items:center; gap:10px; padding: 10px; border-radius: 12px; color:#fff; text-decoration:none; background: transparent; border:none; cursor:pointer; font-family: 'Tajawal', sans-serif; font-size: 0.92rem; text-align: start; transition: 0.2s; }
+  .ww-menu-item i{ color:#8fd9a8; width: 20px; }
+  .ww-menu-item:hover{ background: rgba(95,191,122,0.14); }
+  .ww-menu-item.admin-only{ display: none; border-top: 1px solid rgba(255,255,255,0.08); margin-top: 4px; padding-top: 14px; }
+  .ww-menu-item.admin-only.show{ display: flex; }
+  .ww-menu-item.admin-only i{ color: #ffc857; }
+  .ww-menu-item.admin-only:hover{ background: rgba(255,200,87,0.14); }
+  .menu-badge{ margin-inline-start: auto; background: rgba(255,107,107,0.2); color: #ffd1d1; border: 1px solid rgba(255,107,107,0.3); font-size: 0.75rem; font-weight: 900; padding: 2px 8px; border-radius: 999px; min-width: 20px; text-align: center; }
 
-  .ww-menu.open{
-    display:block;
+  
+  .collab-toast {
+    position: fixed; bottom: 25px; left: 25px;
+    background: rgba(20, 40, 30, 0.95);
+    border: 1px solid rgba(255, 193, 7, 0.3);
+    border-left: 5px solid #ffc107;
+    padding: 15px 20px; border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    display: flex; align-items: center; gap: 15px;
+    z-index: 10000; transform: translateX(-120%);
+    transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
   }
-
-  .ww-menu-item{
-    width:100%;
-    display:flex;
-    align-items:center;
-    gap:10px;
-    padding: 10px;
-    border-radius: 12px;
-    color:#fff;
-    text-decoration:none;
-    background: transparent;
-    border:none;
-    cursor:pointer;
-    font-family: 'Tajawal', sans-serif;
-    font-size: 0.92rem;
-    text-align: start;
-    transition: 0.2s;
-  }
-
-  .ww-menu-item i{
-    color:#8fd9a8;
-    width: 20px;
-  }
-
-  .ww-menu-item:hover{
-    background: rgba(95,191,122,0.14);
-  }
-
-  .ww-menu-item.admin-only{
-    display: none;
-    border-top: 1px solid rgba(255,255,255,0.08);
-    margin-top: 4px;
-    padding-top: 14px;
-  }
-
-  .ww-menu-item.admin-only.show{
-    display: flex;
-  }
-
-  .ww-menu-item.admin-only i{
-    color: #ffc857;
-  }
-
-  .ww-menu-item.admin-only:hover{
-    background: rgba(255,200,87,0.14);
-  }
-
-  .menu-badge{
-    margin-left: auto;
-    background: rgba(255,107,107,0.2);
-    color: #ffd1d1;
-    border: 1px solid rgba(255,107,107,0.3);
-    font-size: 0.75rem;
-    font-weight: 900;
-    padding: 2px 8px;
-    border-radius: 999px;
-    min-width: 20px;
-    text-align: center;
-  }
+  .collab-toast.show { transform: translateX(0); }
+  .toast-content h4 { color: #ffc107; font-size: 0.9rem; margin-bottom: 3px; }
+  .toast-content p { color: #fff; font-size: 0.82rem; margin: 0; }
+  .investigator-tag { background: #fff; color: #0e1a12; padding: 1px 6px; border-radius: 4px; font-weight: 900; margin: 0 3px; }
 </style>
 
 <header class="ww-topbar" id="wwTopbar">
@@ -227,7 +82,6 @@
     <button class="ww-icon-btn" id="btnBack" type="button" title="Back">
       <i class="fa-solid fa-arrow-left"></i>
     </button>
-
     <div class="ww-brand">
       <img src="logo.png" class="ww-logo" alt="Whisper-WA Logo" />
       <div class="ww-title">
@@ -241,7 +95,6 @@
     <button class="ww-lang-btn" id="btnLang" type="button">
       <span id="langText">AR</span>
     </button>
-
     <div class="ww-dropdown" id="accountDropdown">
       <button class="ww-avatar-btn" id="btnAccount" type="button" aria-haspopup="menu" aria-expanded="false">
         <i class="fa-solid fa-user"></i>
@@ -251,18 +104,16 @@
       <div class="ww-menu" id="accountMenu" role="menu" aria-hidden="true">
         <a class="ww-menu-item admin-only" id="menuAdmin" href="admin.html" role="menuitem">
           <i class="fa-solid fa-shield-halved"></i>
-          <span>Admin Dashboard</span>
+          <span id="menuAdminText">Admin Dashboard</span>
           <span class="menu-badge" id="menuAdminBadge">0</span>
         </a>
-
         <a class="ww-menu-item" href="settings.html" role="menuitem">
           <i class="fa-solid fa-gear"></i>
-          <span>Settings</span>
+          <span id="menuSettingsText">Settings</span>
         </a>
-
         <button class="ww-menu-item" id="menuLogout" type="button" role="menuitem">
           <i class="fa-solid fa-right-from-bracket"></i>
-          <span>Logout</span>
+          <span id="menuLogoutText">Logout</span>
         </button>
       </div>
     </div>
@@ -271,8 +122,11 @@
 
 <script>
 (function(){
+ 
+  let toastShown = false; 
   const API_URL = "http://localhost:5000/api";
-
+  
+  const btnBack = document.getElementById("btnBack");
   const btnAccount = document.getElementById("btnAccount");
   const menu = document.getElementById("accountMenu");
   const logoutBtn = document.getElementById("menuLogout");
@@ -282,16 +136,14 @@
   const btnLang = document.getElementById("btnLang");
   const langText = document.getElementById("langText");
   const topSubtitle = document.getElementById("top-subtitle");
+  const menuAdminText = document.getElementById("menuAdminText");
+  const menuSettingsText = document.getElementById("menuSettingsText");
+  const menuLogoutText = document.getElementById("menuLogoutText");
 
-  if (!btnAccount || !menu) return;
-
-  function getToken(){
-    return localStorage.getItem("authToken");
-  }
-
-  function getUserRole(){
-    return localStorage.getItem("userRole");
-  }
+  function getToken(){ return localStorage.getItem("authToken"); }
+  function getUserRole(){ return localStorage.getItem("userRole"); }
+  function getUser(){ return JSON.parse(localStorage.getItem("currentUser") || "{}"); }
+  function isAr(){ return (localStorage.getItem("lang") || "en") === "ar"; }
 
   function authHeaders(){
     return {
@@ -301,49 +153,64 @@
   }
 
   function applyLanguage(){
-    let lang = localStorage.getItem("lang") || "en";
-
-    function render(){
-      if(lang === "ar"){
-
-        if(langText) langText.textContent = "EN";
-        if(topSubtitle) topSubtitle.textContent = "منصة التحليل الجنائي الرقمي";
-      } else {
-        document.documentElement.lang = "en";
-        document.documentElement.dir = "ltr";
-        if(langText) langText.textContent = "AR";
-        if(topSubtitle) topSubtitle.textContent = "Digital Forensics Platform";
-      }
-      localStorage.setItem("lang", lang);
-    }
-
-    if(btnLang){
-      btnLang.onclick = () => {
-        lang = (lang === "ar") ? "en" : "ar";
-        render();
-      };
-    }
-
-    render();
+    const lang = localStorage.getItem("lang") || "en";
+    const currentIsAr = lang === "ar";
+    document.documentElement.lang = currentIsAr ? "ar" : "en";
+    document.documentElement.dir = currentIsAr ? "rtl" : "ltr";
+    if(langText) langText.textContent = currentIsAr ? "EN" : "AR";
+    if(topSubtitle) topSubtitle.textContent = currentIsAr ? "منصة التحليل الجنائي الرقمي" : "Digital Forensics Platform";
+    if(menuAdminText) menuAdminText.textContent = currentIsAr ? "لوحة تحكم المسؤول" : "Admin Dashboard";
+    if(menuSettingsText) menuSettingsText.textContent = currentIsAr ? "الإعدادات" : "Settings";
+    if(menuLogoutText) menuLogoutText.textContent = currentIsAr ? "تسجيل الخروج" : "Logout";
   }
 
-  function checkAdminRole(){
-    const isAdmin = (getUserRole() === "admin");
-
-    if(isAdmin && menuAdmin){
-      menuAdmin.classList.add("show");
-      updatePendingCount();
-    } else if(menuAdmin){
-      menuAdmin.classList.remove("show");
-      if (avatarBadge) avatarBadge.classList.remove("show");
-      if (menuAdminBadge) menuAdminBadge.textContent = "0";
-    }
-  }
-
-  async function updatePendingCount(){
-    const isAdmin = (getUserRole() === "admin");
+ 
+  async function checkNewCollaborations() {
+    const user = getUser();
     const token = getToken();
+    if (!user.id || !token || toastShown) return;
 
+    try {
+      const res = await fetch(`${API_URL}/cases?user_id=${user.id}&role=${user.role}`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.ok && data.cases) {
+        const shared = data.cases.filter(c => c.is_owner === false);
+        if (shared.length > 0) {
+          showCollabToast(shared[0]);
+          if(avatarBadge) {
+            avatarBadge.textContent = shared.length;
+            avatarBadge.classList.add("show");
+          }
+          toastShown = true;
+        }
+      }
+    } catch(e) { console.error("Collaboration check failed", e); }
+  }
+
+  function showCollabToast(caseObj) {
+    const toast = document.createElement("div");
+    toast.className = "collab-toast";
+    const currentIsAr = isAr();
+    toast.innerHTML = `
+      <i class="fa-solid fa-handshake-angle" style="color:#ffc107; font-size:1.4rem;"></i>
+      <div class="toast-content">
+        <h4>${currentIsAr ? 'مهمة تحقيق جديدة' : 'New Forensic Task'}</h4>
+        <p>${currentIsAr ? `المحقق <span class="investigator-tag">${caseObj.added_by_name}</span> أضافك للقضية <b>${caseObj.case_id}</b>` : 
+        `Investigator <span class="investigator-tag">${caseObj.added_by_name}</span> added you to <b>${caseObj.case_id}</b>`}</p>
+      </div>
+      <i class="fa-solid fa-xmark" style="cursor:pointer; opacity:0.5; margin-inline-start:10px;" onclick="this.parentElement.classList.remove('show')"></i>
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.classList.add("show"), 1000);
+    setTimeout(() => toast.classList.remove("show"), 9000);
+  }
+
+  
+  async function updatePendingCount(){
+    const isAdmin = getUserRole() === "admin";
+    const token = getToken();
     if(!isAdmin || !token) return;
 
     try{
@@ -351,95 +218,70 @@
         method: "GET",
         headers: authHeaders()
       });
-
       const data = await res.json();
-
       if(!data.success || !Array.isArray(data.requests)){
         if(menuAdminBadge) menuAdminBadge.textContent = "0";
         if(avatarBadge) avatarBadge.classList.remove("show");
         return;
       }
-
-      const pendingCount = data.requests.length;
-
-      if(pendingCount > 0){
-        if(menuAdminBadge) menuAdminBadge.textContent = pendingCount;
-        if(avatarBadge){
-          avatarBadge.textContent = pendingCount;
-          avatarBadge.classList.add("show");
-        }
+      const count = data.requests.length;
+      if(count > 0){
+        if(menuAdminBadge) menuAdminBadge.textContent = count;
+        if(avatarBadge){ avatarBadge.textContent = count; avatarBadge.classList.add("show"); }
       } else {
         if(menuAdminBadge) menuAdminBadge.textContent = "0";
         if(avatarBadge) avatarBadge.classList.remove("show");
       }
-    } catch(e){
-      console.error("Error updating pending count:", e);
-      if(menuAdminBadge) menuAdminBadge.textContent = "0";
+    } catch(e){ console.error("Error updating pending count:", e); }
+  }
+
+  function checkAdminRole(){
+    const isAdmin = getUserRole() === "admin";
+    if(isAdmin && menuAdmin){
+      menuAdmin.classList.add("show");
+      updatePendingCount();
+    } else if(menuAdmin){
+      menuAdmin.classList.remove("show");
       if(avatarBadge) avatarBadge.classList.remove("show");
+      if(menuAdminBadge) menuAdminBadge.textContent = "0";
     }
+    
+    checkNewCollaborations();
   }
 
-  function openMenu(){
-    menu.classList.add("open");
-    btnAccount.setAttribute("aria-expanded", "true");
-    menu.setAttribute("aria-hidden", "false");
+ 
+  if(btnLang){
+    btnLang.addEventListener("click", function(){
+      const lang = localStorage.getItem("lang") || "en";
+      const nextLang = lang === "ar" ? "en" : "ar";
+      localStorage.setItem("lang", nextLang);
+      applyLanguage();
+      window.dispatchEvent(new CustomEvent("languageChanged", { detail: { lang: nextLang } }));
+    });
   }
 
-  function closeMenu(){
-    menu.classList.remove("open");
-    btnAccount.setAttribute("aria-expanded", "false");
-    menu.setAttribute("aria-hidden", "true");
+  if(btnBack){
+    btnBack.addEventListener("click", function(){
+      if(window.history.length > 1) window.history.back();
+      else window.location.href = "connected.html";
+    });
   }
 
-  btnAccount.addEventListener("click", (e)=>{
-    e.stopPropagation();
-    menu.classList.contains("open") ? closeMenu() : openMenu();
-  });
+  if(btnAccount && menu){
+    btnAccount.addEventListener("click", (e) => { e.stopPropagation(); menu.classList.toggle("open"); });
+    document.addEventListener("click", () => menu.classList.remove("open"));
+    menu.addEventListener("click", (e) => e.stopPropagation());
+  }
 
-  menu.addEventListener("click", (e)=> e.stopPropagation());
-  document.addEventListener("click", closeMenu);
-
-  if (logoutBtn){
-    logoutBtn.addEventListener("click", ()=> {
-      localStorage.removeItem("authToken");
-      localStorage.removeItem("currentUser");
-      localStorage.removeItem("userRole");
-      localStorage.removeItem("lastRequestId");
-      localStorage.removeItem("case_id");
-      localStorage.removeItem("device_serial");
-      localStorage.removeItem("decrypted_db_path");
+  if(logoutBtn){
+    logoutBtn.addEventListener("click", function(){
+      localStorage.clear();
       window.location.href = "index.html";
     });
   }
 
+  
   applyLanguage();
   checkAdminRole();
-
- // يحدث مرة وحدة فقط بدون تكرار
-if (getUserRole() === "admin") {
-  updatePendingCount();
-}
 })();
-
-  function applyLanguage() {
-    const lang = localStorage.getItem("lang") || "ar";
-    const isAr = lang === "ar";
-    
-    // ترجمة عناصر الهيدر الثابتة
-    const t = {
-        ar: { dashboard: "لوحة التحكم", reports: "التقارير", logout: "تسجيل الخروج" },
-        en: { dashboard: "Dashboard", reports: "Reports", logout: "Logout" }
-    };
-
-    const menuAdmin = document.getElementById("menuAdminText");
-    const menuReports = document.getElementById("menuReportsText");
-    const menuLogout = document.getElementById("menuLogoutText");
-
-    if(menuAdmin) menuAdmin.innerText = t[lang].dashboard;
-    if(menuReports) menuReports.innerText = t[lang].reports;
-    if(menuLogout) menuLogout.innerText = t[lang].logout;
-
-    document.documentElement.dir = isAr ? "rtl" : "ltr";
-    document.documentElement.lang = lang;
-}
 </script>
