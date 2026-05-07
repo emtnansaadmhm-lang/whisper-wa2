@@ -205,3 +205,12 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+# Whisper-WA private/generated files
+Cases/
+saved_reports/
+reports_db.json
+*.db
+
+# ADB generated files if any
+adbkey
+adbkey.pub
