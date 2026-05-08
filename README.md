@@ -51,3 +51,30 @@ pip install -r requirements.txt
 
 cd Backend
 python app.py
+Then open:
+
+Frontend/index.html
+
+using Live Server or any local web server.
+
+Workflow
+Connect Android device
+Extract WhatsApp database and key
+Decrypt the database
+Analyze chats and artifacts
+Generate forensic reports
+Project Poster
+
+Project poster will be added here.
+
+Demo Video
+
+Project demo video will be added here.
+
+System Interfaces
+
+System interface screenshots will be added here.
+
+Purpose
+
+The purpose of Whisper-WA is to simplify WhatsApp forensic investigations and help investigators analyze digital evidence in a more organized and efficient way.
