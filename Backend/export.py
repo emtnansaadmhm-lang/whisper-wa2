@@ -12,6 +12,7 @@ try:
     from reportlab.pdfgen import canvas
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.ttfonts import TTFont
+    from reportlab.lib.utils import simpleSplit
     REPORTLAB_AVAILABLE = True
 except ImportError:
     REPORTLAB_AVAILABLE = False
@@ -305,56 +306,117 @@ def export_pdf():
     # Table
     left = 55
     table_w = page_width - 110
-    row_h = 32
+    min_row_h = 42
 
     col_date = 145
     col_number = 125
     col_type = 105
     col_message = table_w - col_date - col_number - col_type
 
+    message_x = left + col_date + col_number + col_type + 8
+    message_w = col_message - 16
+
     def draw_table_header(y_pos):
+        header_h = 32
+
         pdf.setFillColorRGB(0.03, 0.16, 0.32)
-        pdf.roundRect(left, y_pos - row_h, table_w, row_h, 4, fill=1, stroke=0)
+        pdf.roundRect(left, y_pos - header_h, table_w, header_h, 4, fill=1, stroke=0)
 
         pdf.setFillColorRGB(1, 1, 1)
         pdf.setFont(font_name, 9)
         pdf.drawCentredString(left + col_date / 2, y_pos - 20, "DATE & TIME")
         pdf.drawCentredString(left + col_date + col_number / 2, y_pos - 20, "PHONE NUMBER")
         pdf.drawCentredString(left + col_date + col_number + col_type / 2, y_pos - 20, "DIRECTION")
-        pdf.drawCentredString(left + col_date + col_number + col_type + col_message / 2, y_pos - 20, "MESSAGE PREVIEW")
+        pdf.drawCentredString(left + col_date + col_number + col_type + col_message / 2, y_pos - 20, "MESSAGE")
 
-        return y_pos - row_h
+        return y_pos - header_h
+
+    def split_message_lines(text):
+        cleaned = str(text) if text is not None else ""
+        cleaned = cleaned.replace("\r", " ").replace("\n", " ")
+
+        # نخلي الرسالة طويلة تظهر بدل ما تنقص بسرعة
+        # لو صارت ضخمة جدًا نقصها عشان ما يخرب التقرير
+        cleaned = safe_text(cleaned, 1200, arabic=True)
+
+        lines = simpleSplit(cleaned, font_name, 8.5, message_w)
+
+        if not lines:
+            lines = [""]
+
+        return lines
 
     y = draw_table_header(y)
 
     for msg in data:
-        if y < 100:
-            y = new_page(pdf, font_name)
-            y = draw_table_header(y)
-
         message_label = get_message_label(msg)
         media_url = msg.get("media_url", "")
         media_type = msg.get("media_type", "")
 
+        message_lines = split_message_lines(message_label)
+
+        line_h = 10
+        top_padding = 10
+        bottom_padding = 10
+        row_h = max(min_row_h, top_padding + bottom_padding + (len(message_lines) * line_h))
+
+        # إذا الصف طويل جدًا والصفحة ما تكفي، نفتح صفحة جديدة
+        if y - row_h < 90:
+            y = new_page(pdf, font_name)
+            y = draw_table_header(y)
+
+        # خلفية الصف
         pdf.setFillColorRGB(1, 1, 1)
         pdf.rect(left, y - row_h, table_w, row_h, fill=1, stroke=0)
 
+        # إطار الصف
         pdf.setStrokeColorRGB(0.86, 0.89, 0.93)
         pdf.rect(left, y - row_h, table_w, row_h, fill=0, stroke=1)
+
+        # خطوط الأعمدة
+        pdf.line(left + col_date, y, left + col_date, y - row_h)
+        pdf.line(left + col_date + col_number, y, left + col_date + col_number, y - row_h)
+        pdf.line(left + col_date + col_number + col_type, y, left + col_date + col_number + col_type, y - row_h)
 
         pdf.setFillColorRGB(0.10, 0.10, 0.10)
         pdf.setFont(font_name, 8.5)
 
-        pdf.drawCentredString(left + col_date / 2, y - 20, safe_text(msg.get("datetime", ""), 25, arabic=False))
-        pdf.drawCentredString(left + col_date + col_number / 2, y - 20, safe_text(msg.get("number", ""), 25, arabic=False))
-        pdf.drawCentredString(left + col_date + col_number + col_type / 2, y - 20, safe_text(msg.get("type", ""), 18, arabic=False))
+        center_y = y - 22
 
-        # الرسالة فقط هنا، مو Name
-        msg_x = left + col_date + col_number + col_type + col_message / 2
-        pdf.drawCentredString(msg_x, y - 20, safe_text(message_label, 45, arabic=True))
+        pdf.drawCentredString(
+            left + col_date / 2,
+            center_y,
+            safe_text(msg.get("datetime", ""), 25, arabic=False)
+        )
+
+        pdf.drawCentredString(
+            left + col_date + col_number / 2,
+            center_y,
+            safe_text(msg.get("number", ""), 25, arabic=False)
+        )
+
+        pdf.drawCentredString(
+            left + col_date + col_number + col_type / 2,
+            center_y,
+            safe_text(msg.get("type", ""), 18, arabic=False)
+        )
+
+        # الرسالة الطويلة تظهر بعدة أسطر
+        text_y = y - top_padding - 8
+
+        for line in message_lines:
+            # لو الرسالة نفسها طويلة جدًا ونزلت لآخر الصفحة
+            if text_y < 85:
+                y = new_page(pdf, font_name)
+                y = draw_table_header(y)
+                text_y = y - top_padding - 8
+
+            pdf.drawString(message_x, text_y, line)
+            text_y -= line_h
 
         y -= row_h
 
+        # الصور إن وجدت
         if media_url and media_type == "image":
             try:
                 img_path = resolve_media_path(media_url)
