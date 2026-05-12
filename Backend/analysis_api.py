@@ -4,9 +4,17 @@ from analysis import analyze_whatsapp_data
 
 bp_analysis = Blueprint("bp_analysis", __name__)
 
+# Cache لمنع إعادة التحليل كل ثانية
+analysis_cache = {}
+
 @bp_analysis.route("/api/analysis/<case_id>", methods=["GET"])
 def get_case_analysis(case_id):
     try:
+
+        # إذا التحليل موجود بالكاش رجعه مباشرة
+        if case_id in analysis_cache:
+            return jsonify(analysis_cache[case_id]), 200
+
         parsed = parse_whatsapp_db(case_id)
 
         if not parsed.get("ok"):
@@ -39,6 +47,9 @@ def get_case_analysis(case_id):
 
         # لا تحفظ ملف هنا عشان ما يصير لوب إعادة تحميل
         analysis_result["report_path"] = None
+
+        # خزّن النتيجة
+        analysis_cache[case_id] = analysis_result
 
         return jsonify(analysis_result), 200
 
