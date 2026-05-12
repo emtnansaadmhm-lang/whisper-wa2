@@ -639,15 +639,24 @@ document.getElementById("btnSubmitRequest").onclick = async () => {
     const data = await res.json();
     console.log("register-request response:", data);
 
-    if(data.success){
-      const requestId = data.request_id || data.id || "";
-      localStorage.setItem("lastRequestId", String(requestId));
-      localStorage.setItem("lang", currentLang);
+if (res.ok && (data.success || data.ok || res.status === 201)) {
 
-window.location.href = "pending.html";      return;
-    } else {
-      showAlert("danger", data.message || t.alertLoginFail);
-    }
+  const requestId = data.request_id || data.id || "";
+
+  localStorage.setItem("lastRequestId", String(requestId));
+  localStorage.setItem("lang", currentLang);
+
+  window.location.href = "./pending.html";
+  return;
+
+} else {
+
+  showAlert(
+    "danger",
+    data.message || data.error || t.alertLoginFail
+  );
+
+}
   } catch (e){
     console.error("register request error:", e);
     showAlert("danger", t.alertConnection);
