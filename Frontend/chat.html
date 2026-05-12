@@ -850,15 +850,20 @@ if (!selectedCaseId) {
 
     let selectedChatId = null;
     let currentSearchQuery = "";
-    const selectedMessageIds = new Set();
-    const selectedChatIds = new Set();
-    const reportRowsMap = new Map();
+const selectedMessageIds = new Set();
+const selectedChatIds = new Set();
+const reportRowsMap = new Map();
 
-    let suggestionPool = [];
-    let activeTagFilter = "all";
-    let focusedMessageId = null;
+let suggestionPool = [];
+let activeTagFilter = "all";
+let focusedMessageId = null;
 
-    const tbody = document.getElementById("reportTbody");
+const IS_VIRTUAL_CASE =
+  localStorage.getItem("ADB_CONNECTION_TYPE") === "virtual" ||
+  localStorage.getItem("ADB_CONNECTION_TYPE") === "wifi" ||
+  localStorage.getItem("DEVICE_SERIAL")?.includes(":");
+
+const tbody = document.getElementById("reportTbody");
     const addBtn = document.getElementById("txt-add-btn");
     const thRemove = document.getElementById("th-remove");
     const messageView = document.getElementById("messageView");
@@ -1686,10 +1691,19 @@ return messageMatchesTagText(m, activeTagFilter) && t.includes(qLower);        }
       messageView.innerHTML = "";
 
       let firstMatchedBox = null;
-      const messagesToRender = (chat.messages || []).filter(m => {
-if (!currentSearchQuery) return messageMatchesTagText(m, activeTagFilter);
-return messageMatchesCurrentFilters(m);
-      });
+const FILTERED_MESSAGES = (chat.messages || []).filter(m => {
+  if (!currentSearchQuery) {
+    return messageMatchesTagText(m, activeTagFilter);
+  }
+
+  return messageMatchesCurrentFilters(m);
+});
+
+const MAX_MESSAGES =
+  IS_VIRTUAL_CASE ? 120 : FILTERED_MESSAGES.length;
+
+const messagesToRender =
+  FILTERED_MESSAGES.slice(-MAX_MESSAGES);
 
       messagesToRender.forEach((m) => {
         const box = document.createElement("div");
@@ -1719,34 +1733,91 @@ if (selectedMessageIds.has(selectionKey)) {
             </div>`
           : "";
 
+const IS_VIRTUAL_CASE =
+  localStorage.getItem("ADB_CONNECTION_TYPE") === "virtual" ||
+  localStorage.getItem("ADB_CONNECTION_TYPE") === "wifi" ||
+  localStorage.getItem("DEVICE_SERIAL")?.includes(":");
+
 let mediaHTML = "";
 
 if (m.media_url) {
-  if (m.media_type === "image") {
-    mediaHTML = `
-      <img src="${API_BASE}${m.media_url}" 
-           style="max-width:220px;border-radius:12px;margin-top:8px;display:block;">
-    `;
-  } else if (m.media_type === "video") {
-    mediaHTML = `
-      <video controls style="max-width:240px;border-radius:12px;margin-top:8px;display:block;">
-        <source src="${API_BASE}${m.media_url}">
-      </video>
-    `;
-  } else if (m.media_type === "audio" || m.media_type === "audio_recorded") {
-    mediaHTML = `
-      <audio controls style="margin-top:8px;display:block;">
-        <source src="${API_BASE}${m.media_url}">
-      </audio>
-    `;
-  } else if (m.media_type === "document") {
+
+  if (IS_VIRTUAL_CASE) {
+
+    const mediaLabel =
+      m.media_type === "image" ? "🖼️ Open Image" :
+      m.media_type === "video" ? "🎥 Open Video" :
+      m.media_type === "audio" || m.media_type === "audio_recorded" ? "🎧 Open Audio" :
+      "📄 Open File";
+
     mediaHTML = `
       <a href="${API_BASE}${m.media_url}" target="_blank"
-         style="display:inline-block;margin-top:8px;color:#8fd9a8;">
-        📄 ${escapeHtml(m.media_name || "Open File")}
+         style="
+           display:inline-block;
+           margin-top:8px;
+           color:#8fd9a8;
+           text-decoration:none;
+           border:1px solid rgba(143,217,168,.35);
+           padding:6px 10px;
+           border-radius:8px;
+         ">
+        ${mediaLabel}
       </a>
     `;
+
+  } else {
+
+    if (m.media_type === "image") {
+
+      mediaHTML = `
+        <img
+          src="${API_BASE}${m.media_url}"
+          loading="lazy"
+          style="
+            max-width:220px;
+            border-radius:12px;
+            margin-top:8px;
+            display:block;
+          ">
+      `;
+
+    } else if (m.media_type === "video") {
+
+      mediaHTML = `
+        <video
+          controls
+          preload="metadata"
+          style="
+            max-width:240px;
+            border-radius:12px;
+            margin-top:8px;
+            display:block;
+          ">
+          <source src="${API_BASE}${m.media_url}">
+        </video>
+      `;
+
+    } else if (m.media_type === "audio" || m.media_type === "audio_recorded") {
+
+      mediaHTML = `
+        <audio controls preload="metadata" style="margin-top:8px;display:block;">
+          <source src="${API_BASE}${m.media_url}">
+        </audio>
+      `;
+
+    } else {
+
+      mediaHTML = `
+        <a href="${API_BASE}${m.media_url}" target="_blank"
+           style="display:inline-block;margin-top:8px;color:#8fd9a8;">
+          📄 ${escapeHtml(m.media_name || "Open File")}
+        </a>
+      `;
+
+    }
+
   }
+
 }
 
 box.innerHTML = `
