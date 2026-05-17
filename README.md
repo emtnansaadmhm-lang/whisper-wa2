@@ -63,8 +63,7 @@ Project poster will be added here.
 ---
 
 ## Demo Video
-
-Project demo video will be added here.
+[Watch Demo](https://drive.google.com/file/d/14Q1XjRKwIANJPaPd_XlTTlvyng1xaxCz/view?usp=sharing)
 
 ---
 
