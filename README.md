@@ -1,46 +1,80 @@
 # Whisper-WA
 
-Whisper-WA is a digital forensics platform for extracting, decrypting, and analyzing WhatsApp data from Android devices.
+Whisper-WA is a digital forensics platform designed for extracting, decrypting, and analyzing WhatsApp data from Android devices.
 
-The system helps investigators perform WhatsApp forensic analysis through a simplified workflow and investigator-focused interface.
-
----
-
-# Features
-
-- WhatsApp data extraction using ADB
-- WhatsApp database decryption
-- Chat and artifact analysis
-- Suspicious links and keyword detection
-- PDF and CSV forensic reports
-- Arabic and English support
+The system helps investigators perform WhatsApp forensic investigations through a simplified workflow and an investigator-focused interface.
 
 ---
 
-# Tools & Technologies
+## Purpose
 
-- Python
-- Flask
-- SQLite
-- HTML, CSS, JavaScript
-- ADB
-- wadecrypt
+The purpose of Whisper-WA is to simplify WhatsApp forensic investigations and help investigators analyze digital evidence in a more organized and efficient way.
 
 ---
 
-# Requirements
+## Features
 
-- Android device
-- Rooted Android device
-- Python 3.8+
-- ADB installed
-- wadecrypt tool
+* WhatsApp data extraction using ADB
+* WhatsApp database decryption
+* Chat and artifact analysis
+* Suspicious links and keyword detection
+* PDF and CSV forensic reports
+* Arabic and English language support
+
+---
+
+## Tools & Technologies
+
+* Python
+* Flask
+* SQLite
+* HTML, CSS, JavaScript
+* ADB
+* wadecrypt
+
+---
+
+## Requirements
+
+* Android device
+* **Rooted Android device**
+* Python 3.8+
+* ADB installed
+* wadecrypt tool
 
 > Root access is required because the system needs access to the WhatsApp encryption key stored inside protected Android directories.
 
 ---
 
-# How to Run
+## Workflow
+
+1. Connect Android device
+2. Extract WhatsApp database and key
+3. Decrypt the database
+4. Analyze chats and artifacts
+5. Generate forensic reports
+
+---
+
+## Project Poster
+
+Project poster will be added here.
+
+---
+
+## Demo Video
+
+Project demo video will be added here.
+
+---
+
+## System Interfaces
+
+System interface screenshots will be added here.
+
+---
+
+# How to Run the Project
 
 ```bash
 git clone https://github.com/emtnansaadmhm-lang/whisper-wa2.git
@@ -59,38 +93,13 @@ Then open:
 Frontend/index.html
 ```
 
-using Live Server or any local web server.
+using VS Code Live Server or any local web server.
 
 ---
 
-# Workflow
+## Important Notes
 
-1. Connect Android device
-2. Extract WhatsApp database and key
-3. Decrypt the database
-4. Analyze chats and artifacts
-5. Generate forensic reports
-
----
-
-# Project Poster
-
-Project poster will be added here.
-
----
-
-# Demo Video
-
-Project demo video will be added here.
-
----
-
-# System Interfaces
-
-System interface screenshots will be added here.
-
----
-
-# Purpose
-
-The purpose of Whisper-WA is to simplify WhatsApp forensic investigations and help investigators analyze digital evidence in a more organized and efficient way.
+* The Android device must be rooted.
+* Make sure `wadecrypt.exe` is located inside the `Backend` folder.
+* ADB files are included in the project.
+* If decryption does not work, verify that the WhatsApp key and `msgstore.db.crypt14` were extracted successfully from the device.
