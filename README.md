@@ -69,7 +69,7 @@ Project poster will be added here.
 
 ## System Interfaces
 
-System interface screenshots will be added here.
+[View Interfaces PDF](Interfaces.pdf)
 
 ---
 
